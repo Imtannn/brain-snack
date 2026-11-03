@@ -42,7 +42,6 @@ export function VocabularyPage() {
         {phase.kind === 'input' ? (
           <>
             <VocabChrome
-              eyebrow="Active Recall"
               title="Brain Snack"
               subtitle="Feed your mind in seconds. Paste a list, then crunch the meanings."
             />
