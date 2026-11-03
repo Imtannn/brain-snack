@@ -39,7 +39,7 @@ export function VocabularyInput({
     >
       <Stack gap="4">
         <div className="vocab-sample-row">
-          <span className="ds-eyebrow">Dump your snacks</span>
+          <h5 className="vocab-section-heading">Dump your snacks</h5>
           <button
             type="button"
             className="vocab-quick-btn"
@@ -60,8 +60,8 @@ export function VocabularyInput({
           onChange={(event) => onPaste(event.target.value)}
         />
 
-        <div className="vocab-sample-row">
-          <span className="ds-eyebrow">Crunch Timer</span>
+        <div className="vocab-sample-row" style={{ marginTop: 'var(--space-2)' }}>
+          <h5 className="vocab-section-heading">Crunch Timer</h5>
           <div style={{ display: 'flex', gap: '6px' }}>
             <button
               type="button"
