@@ -22,6 +22,9 @@ export function VocabularyInput({
   onPaste,
   onSeconds,
   onProceed,
+  busy = false,
+  proceedLabel = 'Proceed',
+  banner = '',
 }: {
   paste: string
   secondsText: string
@@ -29,6 +32,9 @@ export function VocabularyInput({
   onPaste: (value: string) => void
   onSeconds: (value: string) => void
   onProceed: () => void
+  busy?: boolean
+  proceedLabel?: string
+  banner?: string
 }) {
   return (
     <form
@@ -38,6 +44,7 @@ export function VocabularyInput({
       }}
     >
       <Stack gap="4">
+        {banner ? <p className="vocab-pro-banner">{banner}</p> : null}
         <div className="vocab-sample-row">
           <h5 className="vocab-section-heading">Dump your snacks</h5>
           <button
@@ -98,8 +105,8 @@ export function VocabularyInput({
           onChange={(event) => onSeconds(event.target.value)}
         />
 
-        <Button type="submit" block size="lg" className="btn-pop">
-          Proceed
+        <Button type="submit" block size="lg" className="btn-pop" disabled={busy} aria-busy={busy || undefined}>
+          {proceedLabel}
         </Button>
       </Stack>
     </form>

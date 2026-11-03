@@ -4,15 +4,20 @@ import { CHOICE_KEYS, TIMER_TICK_MS } from '../../lib/vocabulary/constants'
 import { advance, expireQuestion, remainingMs, selectChoice, startSession } from '../../lib/vocabulary/session'
 import type { AnswerRecord, QuizQuestion, QuizSessionState, RevealReason } from '../../lib/vocabulary/types'
 import { Button, type ButtonVariant, ProgressBar, Stack, Surface } from '@shared/ui'
+import { TutorPanel } from './TutorPanel'
 
 export function VocabularyQuiz({
   questions,
   seconds,
   onFinish,
+  tutor = null,
+  modelNotice = '',
 }: {
   questions: readonly QuizQuestion[]
   seconds: number
   onFinish: (answers: readonly AnswerRecord[]) => void
+  tutor?: { apiKey: string } | null
+  modelNotice?: string
 }) {
   const [session, setSession] = useState<QuizSessionState>(() =>
     startSession(questions, seconds * 1000, perfNow()),
@@ -44,6 +49,7 @@ export function VocabularyQuiz({
   useEffect(() => {
     if (!answering || !question) return
     const onKey = (event: KeyboardEvent) => {
+      if (isTypingTarget(event)) return
       if (event.metaKey || event.ctrlKey || event.altKey) return
       const choice = question.choices[Number(event.key) - 1]
       if (!choice) return
@@ -63,6 +69,7 @@ export function VocabularyQuiz({
   useEffect(() => {
     if (answering || !question) return
     const onKey = (event: KeyboardEvent) => {
+      if (isTypingTarget(event)) return
       const space = event.key === ' ' || event.code === 'Space'
       if (!space && event.key !== 'Enter') return
       if (space) event.preventDefault()
@@ -105,7 +112,7 @@ export function VocabularyQuiz({
 
       <div className="vocab-target-box">
         <p className="ds-eyebrow" style={{ color: 'var(--melon)', fontWeight: 800 }}>Choose the English meaning</p>
-        <h2 className="vocab-prompt">{question.prompt}</h2>
+        <h2 className={question.prompt.length > 80 ? 'vocab-prompt is-long' : 'vocab-prompt'}>{question.prompt}</h2>
       </div>
 
       <div className="vocab-choices">
@@ -124,8 +131,20 @@ export function VocabularyQuiz({
         ))}
       </div>
 
+      {modelNotice ? <p className="ds-subtitle vocab-model-line">{modelNotice}</p> : null}
+
       {session.phase === 'revealed' && session.revealReason ? (
         <Reveal question={question} reason={session.revealReason} selectedLabel={session.answers.at(-1)?.selectedLabel ?? null} />
+      ) : null}
+
+      {session.phase === 'revealed' && tutor && session.revealReason && session.revealReason !== 'correct' ? (
+        <TutorPanel
+          key={`${question.id}-${session.revealReason}`}
+          apiKey={tutor.apiKey}
+          question={question}
+          reason={session.revealReason}
+          selectedLabel={session.answers.at(-1)?.selectedLabel ?? null}
+        />
       ) : null}
 
       {session.phase === 'revealed' ? (
@@ -164,6 +183,14 @@ function Reveal({
       <p className="ds-body">{question.explanation.summary}</p>
     </Surface>
   )
+}
+
+function isTypingTarget(event: KeyboardEvent): boolean {
+  const target = event.target
+  if (!(target instanceof HTMLElement)) return false
+  if (target.isContentEditable) return true
+  const tag = target.tagName
+  return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT'
 }
 
 function choiceVariant(

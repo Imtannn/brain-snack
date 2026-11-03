@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 import { IconMoon, IconSun } from '../../components/icons/Icons'
 import { useTheme } from '../../theme/ThemeProvider'
 import { Stack } from '@shared/ui'
+import { AccountControls, AuthError } from './AccountControls'
 
 export function VocabChrome({
   eyebrow,
@@ -19,6 +20,7 @@ export function VocabChrome({
   const isLight = theme === 'light'
 
   return (
+    <div className="vocab-chrome">
     <header className="vocab-bar">
       <div className="vocab-brand-lockup">
         <div className="vocab-brand-icon" aria-hidden="true">
@@ -35,6 +37,7 @@ export function VocabChrome({
       </div>
       <div className="vocab-bar__actions">
         {actions}
+        <AccountControls />
         <button
           type="button"
           className="vocab-theme-toggle"
@@ -55,5 +58,7 @@ export function VocabChrome({
         </button>
       </div>
     </header>
+    <AuthError />
+    </div>
   )
 }
