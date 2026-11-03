@@ -1,0 +1,5 @@
+@import './shared/ui/tokens.css';
+@import './styles/theme.css';
+@import './styles/base.css';
+@import './shared/ui/ui.css';
+@import './styles/vocabulary.css';
