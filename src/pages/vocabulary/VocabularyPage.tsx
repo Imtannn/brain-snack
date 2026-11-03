@@ -16,7 +16,7 @@ type VocabPhase =
   | { kind: 'quiz'; runId: string; questions: QuizQuestion[]; seconds: number }
   | { kind: 'done'; questions: QuizQuestion[]; answers: AnswerRecord[]; seconds: number }
 
-export function VocabularyPage() {
+export function VocabularyPage({ onOpenVisualizer }: { onOpenVisualizer?: () => void } = {}) {
   const [paste, setPaste] = useState('')
   const [secondsText, setSecondsText] = useState(String(DEFAULT_SECONDS))
   const [error, setError] = useState('')
@@ -45,6 +45,13 @@ export function VocabularyPage() {
               eyebrow="Active Recall"
               title="Brain Snack"
               subtitle="Feed your mind in seconds. Paste a list, then crunch the meanings."
+              actions={
+                onOpenVisualizer ? (
+                  <Button variant="quiet" onClick={onOpenVisualizer}>
+                    🎨 Typeface Lab
+                  </Button>
+                ) : null
+              }
             />
             <VocabularyInput
               paste={paste}

@@ -150,7 +150,7 @@ function Reveal({
   reason: RevealReason
   selectedLabel: string | null
 }) {
-  const heading = reason === 'correct' ? 'Crunch! Correct' : reason === 'wrong' ? 'Not quite' : 'Time is up'
+  const heading = reason === 'correct' ? 'Correct' : reason === 'wrong' ? 'Not quite' : 'Time is up'
   const meaning = `The English meaning is “${question.correctLabel}”.`
   const lead = reason === 'wrong' && selectedLabel
     ? `You chose “${selectedLabel}”. ${meaning}`
