@@ -16,7 +16,7 @@ type ThemeContextValue = {
   toggleTheme: () => void
 }
 
-const STORAGE_KEY = 'vocab.theme'
+const STORAGE_KEY = 'brain-snack.theme'
 const ThemeContext = createContext<ThemeContextValue | null>(null)
 
 function readStoredTheme(): Theme | null {
@@ -29,17 +29,6 @@ function readStoredTheme(): Theme | null {
   return null
 }
 
-function systemTheme(): Theme {
-  if (
-    typeof window !== 'undefined' &&
-    typeof window.matchMedia === 'function' &&
-    window.matchMedia('(prefers-color-scheme: light)').matches
-  ) {
-    return 'light'
-  }
-  return 'dark'
-}
-
 function applyTheme(theme: Theme) {
   if (typeof document === 'undefined') return
   const root = document.documentElement
@@ -48,8 +37,9 @@ function applyTheme(theme: Theme) {
 }
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
+  // Default to Cream Foam ('light')
   const [theme, setThemeState] = useState<Theme>(() => {
-    const initial = readStoredTheme() ?? systemTheme()
+    const initial = readStoredTheme() ?? 'light'
     applyTheme(initial)
     return initial
   })

@@ -1,30 +1,32 @@
-# Vocabulary Quiz
+# 🧠 Brain Snack
 
-A fast, minimalist web app for practicing vocabulary lists with interactive timed quizzes.
+> Bite-sized active recall. Feed your mind in seconds.
 
-## Features
+Brain Snack turns any raw list of foreign words, terminology, or study notes into a fast, gamified, timed recall quiz.
 
-- **Paste to Practice**: Paste words and meanings in `word: definition` format, colon blocks, or alternating lines.
-- **Timed Multiple-Choice**: Automatically generates 4-choice quizzes with configurable time limits.
-- **Instant Feedback**: Immediate reveal on correct answers, wrong answers, or timeouts.
-- **Keyboard Navigation**: Press <kbd>1</kbd>–<kbd>4</kbd> to choose answers, and <kbd>Enter</kbd> / <kbd>Space</kbd> to advance.
-- **Dark & Light Mode**: Built-in theme toggle with system preferences support.
-- **100% Client-Side**: No backend required; works offline once loaded.
+## 🍉 Features
 
-## Getting Started
+- **Tactile Neo-Pop Design**: Playful Cream Foam daylight palette with solid 3D press physics and mechanical keycaps.
+- **Paste & Crunch**: Paste words in `word: definition` or alternating lines, or click **"Load sample bite"** to start immediately.
+- **Fast Keyboard Navigation**: Press <kbd>1</kbd>–<kbd>4</kbd> to select choices, and <kbd>SPACE</kbd> / <kbd>ENTER</kbd> to advance.
+- **Crunch Timer**: High-tempo countdown with visual urgency states.
+- **Daylight & Midnight**: Cream Foam daylight theme by default, with a Midnight Plum dark mode toggle.
+- **Zero Backend Required**: Runs entirely client-side, fast and offline-ready.
+
+## 🚀 Getting Started
 
 ```bash
 npm install
 npm run dev
 ```
 
-## Running Tests
+## 🧪 Testing
 
 ```bash
 npm test
 ```
 
-## Production Build
+## 📦 Production Build
 
 ```bash
 npm run build

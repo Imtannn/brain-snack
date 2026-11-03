@@ -1,179 +1,158 @@
-/* Theme tokens — OLED pitch-black & Dark graphite as primary brand system */
+/* Brain Snack Theme System — Cream Foam (Default Light) & Midnight Plum (Dark) */
 
 :root,
-[data-theme='dark'] {
-  color-scheme: dark;
-  --bg: #000001;
-  --bg-elevated: #0f0f10;
-  --bg-subtle: #08080a;
-  --bg-surface-2: #121214;
-  --ink: #ececef;
-  --ink-soft: #c4c4cc;
-  --ink-secondary: var(--ink-soft);
-  --ink-muted: #8a8a96;
-  --ink-subtle: #63636e;
-  --mute: #8a8a96;
-  --muted: var(--mute);
-  --text: var(--ink);
-  --text-primary: var(--ink);
-  --text-secondary: #a1a1aa;
-  --text-muted: #71717a;
-  --text-dim: #52525b;
-  --line: #1c1c1c;
-  --line-strong: rgba(255, 255, 255, 0.14);
-  --line-subtle: rgba(255, 255, 255, 0.05);
-  --line-active: rgba(255, 255, 255, 0.25);
-  --border: #1c1c1c;
-  --border-subtle: rgba(255, 255, 255, 0.06);
-  --signal: #ff4d38;
-  --danger: var(--signal);
-  --success: #22c55e;
-  --color-success: var(--success);
-  --warn: #f59e0b;
-  --info: #3b82f6;
-  --signal-soft: rgba(255, 77, 56, 0.16);
-  --signal-halo: 0 8px 30px rgba(255, 77, 56, 0.42);
-  --accent: var(--signal);
-  --accent-soft: var(--signal-soft);
-  --focus: #ff4d38;
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.5);
-  --shadow-md: 0 16px 48px rgba(0, 0, 0, 0.75);
-  --shadow-deep: 0 24px 64px rgba(0, 0, 0, 0.9);
-  --btn-primary-bg: #ffffff;
-  --btn-primary-fg: #000001;
-  --btn-primary-hover: #e8e8ea;
-  --hover: rgba(255, 255, 255, 0.06);
-  --hover-strong: rgba(255, 255, 255, 0.1);
-  --field-bg: #09090a;
-  --preview-mid: #141416;
-  --preview-end: #0a0a0c;
-  --canvas-bg: #000001;
-  --canvas-grid-line: #101012;
-  --canvas-vignette: radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.03) 0%, transparent 70%);
-  --thumb-bg: #0f0f10;
-  --thumb-studio-bg: #e8e8e6;
-  --chrome: #0f0f10;
-  --hud: rgba(15, 15, 16, 0.92);
-  --toast-bg: #ffffff;
-  --toast-fg: #000001;
-  --tag-bg: rgba(15, 15, 16, 0.85);
-  --overlay-scrim: rgba(0, 0, 0, 0.75);
-  --paper: var(--chrome);
-  --paper-2: var(--bg-subtle);
-  --surface: rgba(15, 15, 16, 0.88);
-  --surface-solid: var(--bg-elevated);
-  --surface-float: rgba(15, 15, 16, 0.96);
-  --surface-1: rgba(255, 255, 255, 0.03);
-  --surface-2: rgba(255, 255, 255, 0.06);
-  --surface-card: #0f0f10;
-  --surface-subtle: rgba(255, 255, 255, 0.03);
-  --surface-hover: rgba(255, 255, 255, 0.06);
-  --surface-raised: rgba(255, 255, 255, 0.08);
-  --panel: #0f0f10;
-  --panel-bg: var(--panel);
-  --panel-hover: #171719;
-  --panel-sub-bg: var(--bg-subtle);
-  --surface-sunken: #08080a;
-  --surface-3: var(--surface-raised);
-  --surface-base: var(--surface-solid);
-  --bg-surface: var(--surface-solid);
-  --segmented-chip-bg: #27272a;
-  --segmented-chip-fg: #ffffff;
-  --radius-xs: 4px;
-  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-  /* AI Sparkle Gradient Stops - Red Accent Hologram */
-  --ai-sparkle-1: #ff7a6b;
-  --ai-sparkle-2: #ff4d38;
-  --ai-sparkle-3: #ffffff;
-  --ai-sparkle-4: #ff3b30;
-  --ai-sparkle-5: #ff8c42;
-  --ai-sparkle-6: #e02e1b;
-}
-
 [data-theme='light'] {
   color-scheme: light;
-  --bg: #f4f4f5;
-  --bg-elevated: #ffffff;
-  --bg-subtle: #ececee;
-  --bg-surface-2: #ececee;
-  --ink: #111113;
-  --ink-soft: #3f3f46;
-  --ink-secondary: var(--ink-soft);
-  --ink-muted: #71717a;
-  --ink-subtle: #a1a1aa;
-  --mute: #71717a;
-  --muted: var(--mute);
+  
+  /* Background surfaces */
+  --bg: #FAF6EF;
+  --bg-elevated: #FFFFFF;
+  --bg-subtle: #F5EFEB;
+  --bg-surface-2: #EFE8DF;
+  --bg-groove: #EAE1D5;
+
+  /* Typography */
+  --ink: #1F1813;
+  --ink-soft: #4A3E35;
+  --ink-secondary: #5C4F44;
+  --ink-muted: #7D6E63;
+  --ink-subtle: #9E8F83;
   --text: var(--ink);
   --text-primary: var(--ink);
-  --text-secondary: #52525b;
-  --text-muted: #71717a;
-  --text-dim: #a1a1aa;
-  --line: rgba(17, 17, 19, 0.14);
-  --line-strong: rgba(17, 17, 19, 0.24);
-  --line-subtle: rgba(17, 17, 19, 0.08);
-  --line-active: rgba(17, 17, 19, 0.25);
-  --border: var(--line);
-  --border-subtle: rgba(17, 17, 19, 0.08);
-  --signal: #ff4d38;
-  --danger: var(--signal);
-  --success: #16a34a;
-  --color-success: var(--success);
-  --warn: #d97706;
-  --info: #2563eb;
-  --signal-soft: rgba(255, 77, 56, 0.12);
-  --signal-halo: 0 8px 30px rgba(255, 77, 56, 0.3);
-  --accent: var(--signal);
-  --accent-soft: var(--signal-soft);
-  --focus: #2563a8;
-  --shadow-sm: 0 1px 2px rgba(17, 17, 19, 0.05);
-  --shadow-md: 0 14px 40px rgba(17, 17, 19, 0.1);
-  --shadow-deep: 0 24px 64px rgba(17, 17, 19, 0.15);
-  --btn-primary-bg: #111113;
-  --btn-primary-fg: #fafafa;
-  --btn-primary-hover: #2a2a2e;
-  --hover: rgba(17, 17, 19, 0.05);
-  --hover-strong: rgba(17, 17, 19, 0.09);
-  --field-bg: #ffffff;
-  --preview-mid: #e6e6ea;
-  --preview-end: #dcdce2;
-  --canvas-bg: #deded8;
-  --canvas-grid-line: #d3d3cc;
-  --canvas-vignette: transparent;
-  /* Studio capture / project thumbs — keep light in both themes. */
-  --thumb-studio-bg: #e8e8e6;
-  --thumb-bg: var(--thumb-studio-bg);
-  --chrome: #fafafa;
-  --hud: rgba(250, 250, 250, 0.94);
-  --toast-bg: #111113;
-  --toast-fg: #fafafa;
-  --tag-bg: rgba(255, 255, 255, 0.82);
-  --overlay-scrim: rgba(17, 17, 19, 0.45);
-  --paper: var(--chrome);
-  --paper-2: var(--bg-subtle);
-  --surface: rgba(255, 255, 255, 0.8);
-  --surface-solid: var(--bg-elevated);
-  --surface-float: rgba(255, 255, 255, 0.96);
-  --surface-1: rgba(17, 17, 19, 0.03);
-  --surface-2: rgba(17, 17, 19, 0.06);
-  --surface-card: rgba(17, 17, 19, 0.04);
-  --surface-subtle: rgba(17, 17, 19, 0.03);
-  --surface-hover: rgba(17, 17, 19, 0.05);
-  --surface-raised: rgba(17, 17, 19, 0.08);
-  --panel: #ffffff;
-  --panel-bg: var(--panel);
-  --panel-hover: #f4f4f5;
-  --panel-sub-bg: var(--bg-subtle);
-  --surface-sunken: var(--bg-subtle);
-  --surface-3: var(--surface-raised);
-  --surface-base: var(--surface-solid);
-  --bg-surface: var(--surface-solid);
-  --segmented-chip-bg: #ffffff;
-  --segmented-chip-fg: var(--ink);
-  /* AI Sparkle Gradient Stops - Red Accent Hologram */
-  --ai-sparkle-1: #dc2626;
-  --ai-sparkle-2: #ff4d38;
-  --ai-sparkle-3: #b91c1c;
-  --ai-sparkle-4: #ea580c;
-  --ai-sparkle-5: #e11d48;
-  --ai-sparkle-6: #991b1b;
+  --text-secondary: var(--ink-secondary);
+  --text-muted: var(--ink-muted);
+
+  /* Lines & Borders */
+  --line: #E4D7C8;
+  --line-strong: #D4C3B0;
+  --line-subtle: #EFE6DC;
+  --border: #E4D7C8;
+  --border-subtle: #EFE6DC;
+
+  /* Pop Candy Palette */
+  --melon: #FF5964;
+  --melon-shadow: #C93540;
+  --melon-wash: #FFEAEB;
+  
+  --marigold: #FFD166;
+  --marigold-shadow: #D19F2A;
+  --marigold-wash: #FFF8E6;
+  
+  --mint: #06D6A0;
+  --mint-shadow: #028A65;
+  --mint-wash: #E6FBF5;
+
+  --blueberry: #4361EE;
+  --blueberry-shadow: #2740B8;
+  --blueberry-wash: #EEF2FF;
+
+  --grape: #7209B7;
+  --grape-shadow: #480575;
+  --grape-wash: #F5E8FF;
+
+  /* Semantic mappings */
+  --signal: var(--melon);
+  --danger: var(--melon);
+  --success: var(--mint);
+  --color-success: var(--mint);
+  --warn: var(--marigold);
+  --info: var(--blueberry);
+  --accent: var(--melon);
+
+  /* Tactile Physics & Shadows */
+  --shadow-drop: #D6C6B3;
+  --shadow-color: #D6C6B3;
+  --card-shadow: 0 4px 0 #DFD2C4;
+  --card-shadow-ambient: 0 12px 32px rgba(110, 80, 45, 0.05);
+
+  /* Keycaps */
+  --keycap-bg: #F4EFEA;
+  --keycap-border: #DCD0C3;
+  --keycap-color: #4A3E35;
+  --keycap-shadow: #CFBEAF;
+
+  /* Buttons */
+  --btn-primary-bg: #1F1813;
+  --btn-primary-fg: #FFFFFF;
+  --btn-primary-hover: #33261C;
+  --btn-primary-shadow: #000000;
+  --hover: rgba(31, 24, 19, 0.04);
+}
+
+[data-theme='dark'] {
+  color-scheme: dark;
+  
+  /* Background surfaces */
+  --bg: #08090E;
+  --bg-elevated: #0E0F17;
+  --bg-subtle: #141622;
+  --bg-surface-2: #1B1E2E;
+  --bg-groove: #181A26;
+
+  /* Typography */
+  --ink: #FFFFFF;
+  --ink-soft: #D5D7E2;
+  --ink-secondary: #B4B7C9;
+  --ink-muted: #8E92A8;
+  --ink-subtle: #686C82;
+  --text: var(--ink);
+  --text-primary: var(--ink);
+  --text-secondary: var(--ink-secondary);
+  --text-muted: var(--ink-muted);
+
+  /* Lines & Borders */
+  --line: #222538;
+  --line-strong: #2F334D;
+  --line-subtle: #191B29;
+  --border: #222538;
+  --border-subtle: #191B29;
+
+  /* Pop Candy Palette */
+  --melon: #FF5964;
+  --melon-shadow: #B82D36;
+  --melon-wash: rgba(255, 89, 100, 0.15);
+  
+  --marigold: #FFD166;
+  --marigold-shadow: #C99F38;
+  --marigold-wash: rgba(255, 209, 102, 0.15);
+  
+  --mint: #06D6A0;
+  --mint-shadow: #039E76;
+  --mint-wash: rgba(6, 214, 160, 0.15);
+
+  --blueberry: #4361EE;
+  --blueberry-shadow: #2740B8;
+  --blueberry-wash: rgba(67, 97, 238, 0.15);
+
+  --grape: #7209B7;
+  --grape-shadow: #480575;
+  --grape-wash: rgba(114, 9, 183, 0.15);
+
+  /* Semantic mappings */
+  --signal: var(--melon);
+  --danger: var(--melon);
+  --success: var(--mint);
+  --color-success: var(--mint);
+  --warn: var(--marigold);
+  --info: var(--blueberry);
+  --accent: var(--melon);
+
+  /* Tactile Physics & Shadows */
+  --shadow-drop: #040508;
+  --shadow-color: #040508;
+  --card-shadow: 0 4px 0 #05060B;
+  --card-shadow-ambient: 0 16px 40px rgba(0, 0, 0, 0.6);
+
+  /* Keycaps */
+  --keycap-bg: #1A1C29;
+  --keycap-border: #2B2F44;
+  --keycap-color: #C0C3D6;
+  --keycap-shadow: #10121C;
+
+  /* Buttons */
+  --btn-primary-bg: #FFFFFF;
+  --btn-primary-fg: #08090E;
+  --btn-primary-hover: #ECECF2;
+  --btn-primary-shadow: #9FA2B8;
+  --hover: rgba(255, 255, 255, 0.05);
 }

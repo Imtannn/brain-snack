@@ -42,9 +42,9 @@ export function VocabularyPage() {
         {phase.kind === 'input' ? (
           <>
             <VocabChrome
-              eyebrow="Practice"
-              title="Vocabulary"
-              subtitle="Paste a list, then practice the English meanings you wrote."
+              eyebrow="Active Recall"
+              title="Brain Snack"
+              subtitle="Feed your mind in seconds. Paste a list, then crunch the meanings."
             />
             <VocabularyInput
               paste={paste}
@@ -66,11 +66,11 @@ export function VocabularyPage() {
         {phase.kind === 'quiz' ? (
           <>
             <VocabChrome
-              eyebrow="Quiz"
-              title="Choose the meaning"
+              eyebrow="Quick Drill"
+              title="Brain Snack"
               actions={
                 <Button variant="quiet" onClick={() => setPhase({ kind: 'input' })}>
-                  Edit list
+                  Edit bites
                 </Button>
               }
             />
@@ -94,7 +94,8 @@ export function VocabularyPage() {
           <>
             <VocabChrome
               eyebrow="Results"
-              title="Finished"
+              title="Brain Snack"
+              subtitle="Bite-sized session complete"
               actions={
                 <Button variant="quiet" onClick={() => setPhase({ kind: 'input' })}>
                   Edit list
@@ -122,8 +123,13 @@ function Finished({
   total: number
   onAgain: () => void
 }) {
+  const ratio = total > 0 ? correct / total : 0
+  const rankClass = ratio === 1 ? 'is-perfect' : ratio >= 0.7 ? 'is-great' : 'is-good'
+  const rankLabel = ratio === 1 ? '🏆 Snack Master (100%)' : ratio >= 0.7 ? '⚡️ Brain Buffet' : '🍪 Quick Nibble'
+
   return (
     <div className="vocab-done">
+      <div className={`vocab-rank-badge ${rankClass}`}>{rankLabel}</div>
       <p className="vocab-score">
         {correct}
         <span>/{total}</span>
@@ -131,7 +137,9 @@ function Finished({
       <p className="ds-subtitle">
         {correct} of {total} correct.
       </p>
-      <Button onClick={onAgain}>Practice again</Button>
+      <Button onClick={onAgain} size="lg" className="btn-pop">
+        Practice again
+      </Button>
     </div>
   )
 }

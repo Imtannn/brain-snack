@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 import { IconMoon, IconSun } from '../../components/icons/Icons'
 import { useTheme } from '../../theme/ThemeProvider'
-import { IconButton, Stack } from '@shared/ui'
+import { Stack } from '@shared/ui'
 
 export function VocabChrome({
   eyebrow,
@@ -15,19 +15,44 @@ export function VocabChrome({
   actions?: ReactNode
 }) {
   const { theme, toggleTheme } = useTheme()
-  const next = theme === 'dark' ? 'light' : 'dark'
+  const next = theme === 'dark' ? 'Cream Foam' : 'Midnight'
+  const isLight = theme === 'light'
+
   return (
     <header className="vocab-bar">
-      <Stack gap="1">
-        {eyebrow ? <p className="ds-eyebrow">{eyebrow}</p> : null}
-        <h1 className="ds-title">{title}</h1>
-        {subtitle ? <p className="ds-subtitle">{subtitle}</p> : null}
-      </Stack>
+      <div className="vocab-brand-lockup">
+        <div className="vocab-brand-icon" aria-hidden="true">
+          🧠
+        </div>
+        <Stack gap="0">
+          <div className="vocab-title-wrap">
+            <h1 className="ds-title">{title}</h1>
+            <span className="vocab-badge-pill">Bite</span>
+          </div>
+          {subtitle ? <p className="ds-subtitle">{subtitle}</p> : null}
+          {eyebrow ? <p className="ds-eyebrow" style={{ marginTop: '2px' }}>{eyebrow}</p> : null}
+        </Stack>
+      </div>
       <div className="vocab-bar__actions">
         {actions}
-        <IconButton label={`Switch to ${next} mode`} onClick={toggleTheme}>
-          {theme === 'dark' ? <IconSun size={16} /> : <IconMoon size={16} />}
-        </IconButton>
+        <button
+          type="button"
+          className="vocab-theme-toggle"
+          aria-label={`Switch to ${next} mode`}
+          onClick={toggleTheme}
+        >
+          {isLight ? (
+            <>
+              <IconMoon size={14} />
+              <span>Midnight</span>
+            </>
+          ) : (
+            <>
+              <IconSun size={14} />
+              <span>Cream Foam</span>
+            </>
+          )}
+        </button>
       </div>
     </header>
   )

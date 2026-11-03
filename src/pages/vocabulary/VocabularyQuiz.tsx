@@ -23,7 +23,7 @@ export function VocabularyQuiz({
   const liveMs = remainingMs(session.startedAtPerf, session.limitMs, now)
   const shownMs = answering ? liveMs : session.revealReason === 'timeout' ? 0 : (session.remainingAtRevealMs ?? 0)
   const secondsLeft = Math.ceil(shownMs / 1000)
-  const low = answering && secondsLeft <= 5
+  const low = answering && secondsLeft <= 4
   const timedOut = session.revealReason === 'timeout'
   const percent = session.limitMs === 0 ? 0 : (shownMs / session.limitMs) * 100
 
@@ -83,13 +83,16 @@ export function VocabularyQuiz({
   const countClass = `vocab-timer__count${low ? ' is-low' : ''}${timedOut ? ' is-out' : ''}`
 
   return (
-    <Stack gap="4">
+    <Stack gap="5">
       <div className="vocab-timer" role="timer" aria-live="off" aria-atomic="true" aria-label={`${secondsLeft} seconds remaining`}>
         <div className="vocab-timer__row">
           <p className="ds-eyebrow">
-            Question {session.index + 1} of {session.questions.length}
+            Bite {session.index + 1} of {session.questions.length}
           </p>
-          <p className={countClass}>{secondsLeft}</p>
+          <p className={countClass}>
+            <span>⏳</span>
+            <span>{secondsLeft}s</span>
+          </p>
         </div>
         <ProgressBar
           progress={percent}
@@ -99,10 +102,12 @@ export function VocabularyQuiz({
           aria-label="Time remaining"
         />
       </div>
-      <Stack gap="2">
-        <p className="ds-eyebrow">Choose the English meaning</p>
+
+      <div className="vocab-target-box">
+        <p className="ds-eyebrow" style={{ color: 'var(--melon)', fontWeight: 800 }}>Choose the English meaning</p>
         <h2 className="vocab-prompt">{question.prompt}</h2>
-      </Stack>
+      </div>
+
       <div className="vocab-choices">
         {question.choices.map((choice, index) => (
           <Button
@@ -118,15 +123,19 @@ export function VocabularyQuiz({
           </Button>
         ))}
       </div>
+
       {session.phase === 'revealed' && session.revealReason ? (
         <Reveal question={question} reason={session.revealReason} selectedLabel={session.answers.at(-1)?.selectedLabel ?? null} />
       ) : null}
+
       {session.phase === 'revealed' ? (
-        <Button onClick={goNext}>
+        <Button onClick={goNext} size="lg" className="btn-pop">
           {session.index === session.questions.length - 1 ? 'See results' : 'Next question'}
         </Button>
       ) : (
-        <p className="ds-subtitle">Keys 1 to {question.choices.length} answer. The clock stops when you choose, or when it hits zero.</p>
+        <p className="ds-subtitle" style={{ textAlign: 'center' }}>
+          Keys 1 to {question.choices.length} answer. The clock stops when you choose, or when it hits zero.
+        </p>
       )}
     </Stack>
   )
@@ -141,7 +150,7 @@ function Reveal({
   reason: RevealReason
   selectedLabel: string | null
 }) {
-  const heading = reason === 'correct' ? 'Correct' : reason === 'wrong' ? 'Not quite' : 'Time is up'
+  const heading = reason === 'correct' ? 'Crunch! Correct' : reason === 'wrong' ? 'Not quite' : 'Time is up'
   const meaning = `The English meaning is “${question.correctLabel}”.`
   const lead = reason === 'wrong' && selectedLabel
     ? `You chose “${selectedLabel}”. ${meaning}`
@@ -149,9 +158,9 @@ function Reveal({
       ? `The timer ran out. ${meaning}`
       : meaning
   return (
-    <Surface pad stack="3" className={`vocab-reveal is-${reason === 'correct' ? 'correct' : reason === 'wrong' ? 'wrong' : 'timeout'}`} aria-live="assertive">
+    <Surface pad stack="2" className={`vocab-reveal is-${reason === 'correct' ? 'correct' : reason === 'wrong' ? 'wrong' : 'timeout'}`} aria-live="assertive">
       <p className="ds-eyebrow">{heading}</p>
-      <p className="ds-body">{lead}</p>
+      <p className="ds-body" style={{ fontWeight: 600 }}>{lead}</p>
       <p className="ds-body">{question.explanation.summary}</p>
     </Surface>
   )
