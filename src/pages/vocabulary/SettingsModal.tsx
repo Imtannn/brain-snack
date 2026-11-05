@@ -26,13 +26,13 @@ export function SettingsModal({
   return (
     <Modal
       open={open}
-      title="Gemini key"
+      title="Brainy"
       onClose={onClose}
       onSubmit={(event) => {
         event.preventDefault()
         const next = draft.trim()
         if (!next) {
-          setError('Paste a Gemini API key first.')
+          setError('Paste an API key first.')
           return
         }
         onSave(next)
@@ -40,14 +40,15 @@ export function SettingsModal({
       }}
     >
       <Stack gap="4">
+        <p className="ds-subtitle">Our AI agent. Paste an API key from Google AI Studio.</p>
         <TextField
-          label="Google Gemini API key"
+          label="API key"
           type={visible ? 'text' : 'password'}
           autoComplete="off"
           spellCheck={false}
           value={draft}
           error={error || undefined}
-          hint="Saved in this browser for your account only. It is not stored in Firestore."
+          hint="Saved in this browser for this account only."
           onChange={(event) => {
             setDraft(event.target.value)
             setError('')

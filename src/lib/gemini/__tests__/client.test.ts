@@ -13,7 +13,7 @@ describe('generateContent', () => {
     vi.unstubAllGlobals()
   })
 
-  it('returns text from gemini-1.5-flash', async () => {
+  it('returns text from the primary model', async () => {
     const fetchMock = vi.fn().mockResolvedValue(jsonResponse({
       candidates: [{ content: { parts: [{ text: '[{"question":"a"}]' }] } }],
     }))
@@ -28,10 +28,10 @@ describe('generateContent', () => {
     expect(String(init.body)).toContain('"responseMimeType":"application/json"')
   })
 
-  it('switches to gemini-2.5-flash when the first model is missing', async () => {
+  it('switches to the fallback model when the first model is missing', async () => {
     const fetchMock = vi.fn()
       .mockResolvedValueOnce(jsonResponse({
-        error: { message: 'models/gemini-1.5-flash is not found', status: 'NOT_FOUND' },
+        error: { message: `models/${PRIMARY_MODEL} is not found`, status: 'NOT_FOUND' },
       }, 404))
       .mockResolvedValueOnce(jsonResponse({
         candidates: [{ content: { parts: [{ text: 'A short explanation.' }] } }],

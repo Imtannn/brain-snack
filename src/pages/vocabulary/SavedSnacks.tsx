@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
-import { Button, Stack } from '@shared/ui'
-import { deleteSnack, listSnacks, snackErrorMessage } from '../../lib/snacks/firestore'
+import { Button, IconButton, Stack } from '@shared/ui'
+import { deleteSnack, listSnacks, snackErrorMessage } from '../../lib/snacks/store'
 import type { SavedSnack } from '../../lib/snacks/snackRecord'
 
 export function SavedSnacks({
@@ -47,34 +47,44 @@ export function SavedSnacks({
   }
 
   return (
-    <section className="vocab-snacks" aria-label="Saved snacks">
-      <h2 className="vocab-section-heading">Saved snacks</h2>
-      {loading ? <p className="ds-subtitle">Loading saved snacks…</p> : null}
+    <section className="vocab-snacks" aria-label="Your Snack Vault">
+      <h2 className="vocab-section-heading">Your Snack Vault</h2>
+      {loading ? <p className="ds-subtitle">Loading your snacks…</p> : null}
       {error ? <p className="vocab-auth-error" role="alert">{error}</p> : null}
       {!loading && snacks.length === 0 && !error ? (
-        <p className="ds-subtitle">Finish a Gemini session and save it to restudy here.</p>
+        <p className="ds-subtitle">Finish a snack and save it to crunch it again here.</p>
       ) : null}
       <Stack gap="3">
         {snacks.map((snack) => (
           <article key={snack.id} className="vocab-snack">
-            <div>
+            <div className="vocab-snack__copy">
               <p className="vocab-snack__title">{snack.title}</p>
               <p className="ds-subtitle">
                 {snack.questions.length} questions
-                {snack.createdAt ? ` · ${new Date(snack.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}` : ''}
+                {snack.createdAt
+                  ? ` · ${new Date(snack.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}`
+                  : ''}
               </p>
             </div>
             <div className="vocab-snack__actions">
               <Button size="sm" className="btn-pop" onClick={() => onRestudy(snack)}>
-                Restudy
+                Crunch Again
               </Button>
-              <Button size="sm" variant="quiet" onClick={() => void remove(snack)}>
-                Delete
-              </Button>
+              <IconButton label={`Delete ${snack.title}`} className="vocab-snack__delete" onClick={() => void remove(snack)}>
+                <TrashIcon />
+              </IconButton>
             </div>
           </article>
         ))}
       </Stack>
     </section>
+  )
+}
+
+function TrashIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M4 7h16M9 7V5h6v2M8 7l1 13h6l1-13" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
   )
 }

@@ -29,7 +29,7 @@ export function useGeminiKey(): GeminiKeyContextValue {
 export function GeminiKeyProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth()
   const uid = user?.uid ?? null
-  const [key, setKeyState] = useState('')
+  const [key, setKeyState] = useState(() => (user?.uid ? readGeminiKey(user.uid) : ''))
 
   useEffect(() => {
     setKeyState(uid ? readGeminiKey(uid) : '')

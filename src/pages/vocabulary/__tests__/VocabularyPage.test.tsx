@@ -26,7 +26,7 @@ describe('VocabularyPage', () => {
         <VocabularyPage />
       </ThemeProvider>,
     )
-    fireEvent.change(screen.getByLabelText(/Vocabulary list/), { target: { value: LIST } })
+    fireEvent.change(screen.getByLabelText(/Paste anything/), { target: { value: LIST } })
     fireEvent.change(screen.getByLabelText(/Seconds per question/), { target: { value: '12' } })
     fireEvent.click(screen.getByRole('button', { name: 'Proceed' }))
     expect(screen.getByText('Choose the English meaning')).toBeTruthy()
@@ -50,11 +50,11 @@ describe('VocabularyPage', () => {
         <VocabularyPage />
       </ThemeProvider>,
     )
-    fireEvent.change(screen.getByLabelText(/Vocabulary list/), {
+    fireEvent.change(screen.getByLabelText(/Paste anything/), {
       target: { value: 'bonjour - hello\nmerci - thank you\n' },
     })
     fireEvent.click(screen.getByRole('button', { name: 'Proceed' }))
-    expect(screen.getByText(/Paste at least 4 pairs/)).toBeTruthy()
+    expect(screen.getByText(/Need at least 4 word: meaning pairs/)).toBeTruthy()
     expect(screen.queryByText('Choose the English meaning')).toBeNull()
   })
 })

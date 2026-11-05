@@ -1,17 +1,6 @@
 import type { QuizQuestion, RevealReason } from '../vocabulary/types'
 import { generateContent, type GeminiContent, type GeminiReply } from './client'
 
-export const MAX_TUTOR_FILE_BYTES = 4 * 1024 * 1024
-
-export function tutorFileError(file: Pick<File, 'name' | 'type' | 'size'>): string | null {
-  if (file.size > MAX_TUTOR_FILE_BYTES) return 'That file is larger than 4 MB.'
-  const type = file.type.toLowerCase()
-  const name = file.name.toLowerCase()
-  const allowed = type.startsWith('image/') || type.startsWith('text/') || /\.(txt|md|csv|json)$/.test(name)
-  if (!allowed) return 'Attach an image or a text file.'
-  return null
-}
-
 export function explanationPrompt(
   question: QuizQuestion,
   reason: Exclude<RevealReason, 'correct'>,
@@ -51,7 +40,6 @@ export async function continueTutorChat(
   return generateContent(apiKey, contents, { signal })
 }
 
-export function explainedBy(model: string, fallback: boolean): string {
-  if (fallback) return `gemini-1.5-flash was unavailable, so this explanation used ${model}.`
-  return `Explained by ${model}.`
+export function explainedBy(_model: string, _fallback: boolean): string {
+  return 'Explained by Brainy.'
 }

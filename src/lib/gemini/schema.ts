@@ -23,7 +23,7 @@ export function extractJson(raw: string): unknown {
     const start = body.indexOf('[')
     const end = body.lastIndexOf(']')
     if (start >= 0 && end > start) return JSON.parse(body.slice(start, end + 1))
-    throw new Error('Gemini returned text that was not a JSON array.')
+    throw new Error('Brainy returned text that was not a JSON array.')
   }
 }
 
@@ -57,7 +57,7 @@ export function questionsFromModelText(
   ids?: QuizIds,
 ): QuizQuestion[] {
   const parsed = extractJson(raw)
-  if (!Array.isArray(parsed)) throw new Error('Gemini returned text that was not a JSON array.')
+  if (!Array.isArray(parsed)) throw new Error('Brainy returned text that was not a JSON array.')
   const idSource: QuizIds = ids ?? { question: () => uid('q'), choice: () => uid('c') }
   const questions: QuizQuestion[] = []
   for (const entry of parsed) {

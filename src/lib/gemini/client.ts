@@ -1,5 +1,5 @@
-export const PRIMARY_MODEL = 'gemini-1.5-flash'
-export const FALLBACK_MODEL = 'gemini-2.5-flash'
+export const PRIMARY_MODEL = 'gemini-2.5-flash'
+export const FALLBACK_MODEL = 'gemini-3.8-flash'
 
 export type GeminiPart =
   | { text: string }
@@ -68,9 +68,9 @@ export async function generateContent(
   options?: { json?: boolean; signal?: AbortSignal },
 ): Promise<GeminiReply> {
   const key = apiKey.trim()
-  if (!key) throw new Error('Add a Gemini API key in Settings.')
+  if (!key) throw new Error('Add a Brainy key in Settings.')
   const models = [PRIMARY_MODEL, FALLBACK_MODEL]
-  let lastError = 'Gemini could not answer.'
+  let lastError = 'Brainy could not answer.'
 
   for (let index = 0; index < models.length; index += 1) {
     const model = models[index] ?? PRIMARY_MODEL
@@ -88,13 +88,13 @@ export async function generateContent(
     const { body } = await readBody(response)
     if (response.ok) {
       if (body.promptFeedback?.blockReason && !textFrom(body)) {
-        throw new Error(`Gemini blocked that request (${body.promptFeedback.blockReason}).`)
+        throw new Error(`Brainy blocked that request (${body.promptFeedback.blockReason}).`)
       }
       const text = textFrom(body)
-      if (!text) throw new Error('Gemini returned an empty response.')
+      if (!text) throw new Error('Brainy returned an empty response.')
       return { text, model, fallback: model !== PRIMARY_MODEL }
     }
-    const message = body.error?.message || `Gemini request failed (${response.status}).`
+    const message = body.error?.message || `Brainy request failed (${response.status}).`
     lastError = sanitizeGeminiMessage(message, key)
     const missing = index === 0 && isMissingModel(response.status, message, body.error?.status)
     if (missing) continue
@@ -104,7 +104,6 @@ export async function generateContent(
   throw new Error(lastError)
 }
 
-export function modelNotice(model: string, fallback: boolean): string {
-  if (fallback) return `gemini-1.5-flash was unavailable, so this used ${model}.`
-  return `Generated with ${model}.`
+export function modelNotice(_model: string, _fallback: boolean): string {
+  return 'Built with Brainy.'
 }

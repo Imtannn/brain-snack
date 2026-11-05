@@ -2,19 +2,22 @@ import {
   createContext,
   useCallback,
   useContext,
-  useEffect,
   useMemo,
   useState,
   type ReactNode,
 } from 'react'
+import { googleClientId, requestGoogleProfile } from './googleSignIn'
 import {
-  GoogleAuthProvider,
-  onAuthStateChanged,
-  signInWithPopup,
-  signOut,
-  type User,
-} from 'firebase/auth'
-import { firebaseConfigured, getFirebaseAuth } from '../firebase/config'
+  consumeLoginCode,
+  findAccount,
+  hashPassword,
+  issueLoginCode,
+  readSession,
+  sessionFor,
+  upsertAccount,
+  writeSession,
+  type LocalSession,
+} from './localAccounts'
 
 export type AuthUser = {
   uid: string
@@ -23,13 +26,24 @@ export type AuthUser = {
   photoURL: string | null
 }
 
+export type SignupPending = {
+  needs_verification: boolean
+  email: string
+  email_sent: boolean
+  message: string
+  dev_code?: string | null
+}
+
 type AuthContextValue = {
   user: AuthUser | null
   ready: boolean
-  configured: boolean
   error: string | null
+  login: (email: string, password: string) => Promise<void>
+  requestLoginCode: (email: string) => Promise<SignupPending>
+  verifyLoginCode: (email: string, code: string) => Promise<void>
   signInWithGoogle: () => Promise<void>
   signOutUser: () => Promise<void>
+  clearError: () => void
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null)
@@ -37,83 +51,121 @@ const AuthContext = createContext<AuthContextValue | null>(null)
 const signedOutAuth: AuthContextValue = {
   user: null,
   ready: true,
-  configured: false,
   error: null,
+  login: async () => {},
+  requestLoginCode: async () => ({
+    needs_verification: false,
+    email: '',
+    email_sent: false,
+    message: '',
+  }),
+  verifyLoginCode: async () => {},
   signInWithGoogle: async () => {},
   signOutUser: async () => {},
+  clearError: () => {},
 }
 
 export function useAuth(): AuthContextValue {
   return useContext(AuthContext) ?? signedOutAuth
 }
 
-function toAuthUser(user: User): AuthUser {
+function toAuthUser(session: LocalSession): AuthUser {
   return {
-    uid: user.uid,
-    displayName: user.displayName,
-    email: user.email,
-    photoURL: user.photoURL,
+    uid: session.uid,
+    displayName: session.displayName,
+    email: session.email,
+    photoURL: null,
   }
 }
 
-export function authErrorMessage(error: unknown): string {
-  const code = typeof error === 'object' && error && 'code' in error ? String((error as { code: unknown }).code) : ''
-  if (code === 'auth/popup-closed-by-user' || code === 'auth/cancelled-popup-request') return 'Sign-in was cancelled.'
-  if (code === 'auth/unauthorized-domain') return 'This domain is not authorized in Firebase Authentication settings.'
-  if (code === 'auth/operation-not-allowed') return 'Turn on Google sign-in in the Firebase console.'
-  if (code === 'auth/popup-blocked') return 'The browser blocked the Google sign-in popup.'
-  if (error instanceof Error && error.message) return error.message
-  return 'Google sign-in failed.'
-}
-
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const configured = firebaseConfigured()
-  const [user, setUser] = useState<AuthUser | null>(null)
-  const [ready, setReady] = useState(!configured)
+  const [user, setUser] = useState<AuthUser | null>(() => {
+    const session = readSession()
+    return session ? toAuthUser(session) : null
+  })
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    if (!configured) return
-    let unsubscribe = () => {}
-    try {
-      const auth = getFirebaseAuth()
-      unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
-        setUser(firebaseUser ? toAuthUser(firebaseUser) : null)
-        setReady(true)
-      })
-    } catch (err) {
-      setError(authErrorMessage(err))
-      setReady(true)
+  const accept = useCallback((session: LocalSession) => {
+    writeSession(session)
+    setUser(toAuthUser(session))
+    setError(null)
+  }, [])
+
+  const login = useCallback(async (email: string, password: string) => {
+    const existing = findAccount(email)
+    const passwordHash = await hashPassword(password)
+    if (existing?.passwordHash && existing.passwordHash !== passwordHash) {
+      throw new Error('Invalid email or password')
     }
-    return unsubscribe
-  }, [configured])
+    const account = {
+      email: email.trim().toLowerCase(),
+      passwordHash,
+      name: existing?.name ?? '',
+    }
+    upsertAccount(account)
+    accept(sessionFor(account.email, account.name))
+  }, [accept])
+
+  const requestLoginCode = useCallback(async (email: string) => {
+    const normalized = email.trim().toLowerCase()
+    const code = issueLoginCode(normalized)
+    return {
+      needs_verification: true,
+      email: normalized,
+      email_sent: false,
+      message: 'This sign-in stays in the browser, so the code is shown here.',
+      dev_code: code,
+    }
+  }, [])
+
+  const verifyLoginCode = useCallback(async (email: string, code: string) => {
+    if (!consumeLoginCode(email, code)) throw new Error('Incorrect code')
+    const existing = findAccount(email)
+    const account = {
+      email: email.trim().toLowerCase(),
+      passwordHash: existing?.passwordHash ?? null,
+      name: existing?.name ?? '',
+    }
+    upsertAccount(account)
+    accept(sessionFor(account.email, account.name))
+  }, [accept])
 
   const signInWithGoogle = useCallback(async () => {
-    setError(null)
-    if (!configured) {
-      setError('Add the Firebase web config to .env, then restart the dev server.')
-      return
+    const clientId = googleClientId()
+    if (!clientId) {
+      throw new Error('Add VITE_GOOGLE_CLIENT_ID to .env to use Google. Email sign-in works without it.')
     }
-    try {
-      await signInWithPopup(getFirebaseAuth(), new GoogleAuthProvider())
-    } catch (err) {
-      setError(authErrorMessage(err))
+    const profile = await requestGoogleProfile(clientId)
+    const existing = findAccount(profile.email)
+    const account = {
+      email: profile.email.trim().toLowerCase(),
+      passwordHash: existing?.passwordHash ?? null,
+      name: profile.name || existing?.name || '',
     }
-  }, [configured])
+    upsertAccount(account)
+    accept(sessionFor(account.email, account.name))
+  }, [accept])
 
   const signOutUser = useCallback(async () => {
-    setError(null)
-    if (!configured) return
-    try {
-      await signOut(getFirebaseAuth())
-    } catch (err) {
-      setError(authErrorMessage(err))
-    }
-  }, [configured])
+    writeSession(null)
+    setUser(null)
+  }, [])
+
+  const clearError = useCallback(() => setError(null), [])
 
   const value = useMemo(
-    () => ({ user, ready, configured, error, signInWithGoogle, signOutUser }),
-    [user, ready, configured, error, signInWithGoogle, signOutUser],
+    () => ({
+      user,
+      ready: true,
+      error,
+      login,
+      requestLoginCode,
+      verifyLoginCode,
+      signInWithGoogle,
+      signOutUser,
+      clearError,
+    }),
+    [user, error, login, requestLoginCode, verifyLoginCode, signInWithGoogle, signOutUser, clearError],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

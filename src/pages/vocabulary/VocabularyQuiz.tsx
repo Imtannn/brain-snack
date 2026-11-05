@@ -4,6 +4,8 @@ import { CHOICE_KEYS, TIMER_TICK_MS } from '../../lib/vocabulary/constants'
 import { advance, expireQuestion, remainingMs, selectChoice, startSession } from '../../lib/vocabulary/session'
 import type { AnswerRecord, QuizQuestion, QuizSessionState, RevealReason } from '../../lib/vocabulary/types'
 import { Button, type ButtonVariant, ProgressBar, Stack, Surface } from '@shared/ui'
+import { HearButton } from './HearButton'
+import { MarkdownText } from './MarkdownText'
 import { TutorPanel } from './TutorPanel'
 
 export function VocabularyQuiz({
@@ -112,7 +114,10 @@ export function VocabularyQuiz({
 
       <div className="vocab-target-box">
         <p className="ds-eyebrow" style={{ color: 'var(--melon)', fontWeight: 800 }}>Choose the English meaning</p>
-        <h2 className={question.prompt.length > 80 ? 'vocab-prompt is-long' : 'vocab-prompt'}>{question.prompt}</h2>
+        <div className="vocab-prompt-row">
+          <h2 className={question.prompt.length > 80 ? 'vocab-prompt is-long' : 'vocab-prompt'}>{question.prompt}</h2>
+          <HearButton text={question.prompt} apiKey={tutor?.apiKey ?? null} />
+        </div>
       </div>
 
       <div className="vocab-choices">
@@ -134,7 +139,12 @@ export function VocabularyQuiz({
       {modelNotice ? <p className="ds-subtitle vocab-model-line">{modelNotice}</p> : null}
 
       {session.phase === 'revealed' && session.revealReason ? (
-        <Reveal question={question} reason={session.revealReason} selectedLabel={session.answers.at(-1)?.selectedLabel ?? null} />
+        <Reveal
+          question={question}
+          reason={session.revealReason}
+          selectedLabel={session.answers.at(-1)?.selectedLabel ?? null}
+          apiKey={tutor?.apiKey ?? null}
+        />
       ) : null}
 
       {session.phase === 'revealed' && tutor && session.revealReason && session.revealReason !== 'correct' ? (
@@ -164,10 +174,12 @@ function Reveal({
   question,
   reason,
   selectedLabel,
+  apiKey,
 }: {
   question: QuizQuestion
   reason: RevealReason
   selectedLabel: string | null
+  apiKey?: string | null
 }) {
   const heading = reason === 'correct' ? 'Correct' : reason === 'wrong' ? 'Not quite' : 'Time is up'
   const meaning = `The English meaning is “${question.correctLabel}”.`
@@ -180,7 +192,8 @@ function Reveal({
     <Surface pad stack="2" className={`vocab-reveal is-${reason === 'correct' ? 'correct' : reason === 'wrong' ? 'wrong' : 'timeout'}`} aria-live="assertive">
       <p className="ds-eyebrow">{heading}</p>
       <p className="ds-body" style={{ fontWeight: 600 }}>{lead}</p>
-      <p className="ds-body">{question.explanation.summary}</p>
+      <MarkdownText text={question.explanation.summary} className="ds-body" />
+      <HearButton text={question.prompt} apiKey={apiKey ?? null} />
     </Surface>
   )
 }
