@@ -48,7 +48,7 @@ export function SettingsModal({
           spellCheck={false}
           value={draft}
           error={error || undefined}
-          hint="Saved in this browser for this account only."
+          hint="Saved to your Brain Snack account so Brainy follows you across devices."
           onChange={(event) => {
             setDraft(event.target.value)
             setError('')

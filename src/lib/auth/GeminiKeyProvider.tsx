@@ -7,7 +7,7 @@ import {
   useState,
   type ReactNode,
 } from 'react'
-import { clearGeminiKey, readGeminiKey, writeGeminiKey } from './geminiKey'
+import { loadGeminiKey, readGeminiKey, saveGeminiKey } from './geminiKey'
 import { useAuth } from './AuthProvider'
 
 type GeminiKeyContextValue = {
@@ -32,16 +32,26 @@ export function GeminiKeyProvider({ children }: { children: ReactNode }) {
   const [key, setKeyState] = useState(() => (user?.uid ? readGeminiKey(user.uid) : ''))
 
   useEffect(() => {
-    setKeyState(uid ? readGeminiKey(uid) : '')
+    if (!uid) {
+      setKeyState('')
+      return
+    }
+    setKeyState(readGeminiKey(uid))
+    let active = true
+    void loadGeminiKey(uid).then((next) => {
+      if (active) setKeyState(next)
+    })
+    return () => {
+      active = false
+    }
   }, [uid])
 
   const setKey = useCallback(
     (value: string) => {
       if (!uid) return
       const trimmed = value.trim()
-      if (trimmed) writeGeminiKey(uid, trimmed)
-      else clearGeminiKey(uid)
       setKeyState(trimmed)
+      void saveGeminiKey(uid, trimmed)
     },
     [uid],
   )

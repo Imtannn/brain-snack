@@ -10,6 +10,16 @@ export default defineConfig({
       '@shared/ui': path.resolve(__dirname, './src/shared/ui'),
     },
   },
+  server: {
+    proxy: {
+      '/api': 'http://127.0.0.1:8787',
+    },
+  },
+  preview: {
+    proxy: {
+      '/api': 'http://127.0.0.1:8787',
+    },
+  },
   test: {
     environment: 'jsdom',
     globals: true,

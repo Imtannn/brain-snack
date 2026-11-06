@@ -69,7 +69,7 @@ export function TopNav({
           ) : null}
         </div>
 
-        <div className="top-nav__actions">
+        <div className="top-nav__tools">
           <label className="speech-lang">
             <span className="speech-lang__label">Hear</span>
             <select
@@ -105,11 +105,13 @@ export function TopNav({
               </>
             )}
           </button>
+        </div>
 
+        <div className="top-nav__auth">
           {!ready ? <span className="vocab-account__wait">Checking sign-in</span> : null}
 
           {ready && !user ? (
-            <Button size="sm" variant="quiet" className="btn-pop" onClick={() => setLoginOpen(true)}>
+            <Button size="sm" variant="quiet" className="btn-pop top-nav__login" onClick={() => setLoginOpen(true)}>
               Log in
             </Button>
           ) : null}

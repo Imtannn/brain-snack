@@ -1,12 +1,12 @@
 import { uid } from '../core/uid'
+import { apiDeleteSnack, apiListSnacks, apiPutSnack } from '../api/client'
+import { accountId } from '../auth/localAccounts'
 import { toSavedSnack, type SavedSnack } from './snackRecord'
 import type { SnackDraft } from './types'
 
-/** Per-account snack vault: title, timestamp, and the exact quiz JSON. */
-
 const storageKey = (userId: string) => `brain-snack.snacks.${userId}`
 
-function readAll(userId: string): SavedSnack[] {
+function readAllLocal(userId: string): SavedSnack[] {
   try {
     const raw = localStorage.getItem(storageKey(userId))
     if (!raw) return []
@@ -24,8 +24,29 @@ function readAll(userId: string): SavedSnack[] {
   }
 }
 
-function writeAll(userId: string, snacks: readonly SavedSnack[]) {
+function writeAllLocal(userId: string, snacks: readonly SavedSnack[]) {
   localStorage.setItem(storageKey(userId), JSON.stringify(snacks))
+}
+
+function cacheLocal(userId: string, snacks: readonly SavedSnack[]) {
+  try {
+    writeAllLocal(userId, snacks)
+  } catch {
+    // Private mode can block storage. Cloud is the source of truth.
+  }
+}
+
+function isVaultOffline(error: unknown): boolean {
+  return error instanceof Error && /offline|not configured|Vault database/i.test(error.message)
+}
+
+async function upsertCloud(snack: SavedSnack): Promise<void> {
+  try {
+    await apiPutSnack(snack)
+  } catch (err) {
+    if (isVaultOffline(err)) return
+    throw err
+  }
 }
 
 export async function saveSnack(userId: string, draft: SnackDraft): Promise<string> {
@@ -41,7 +62,8 @@ export async function saveSnack(userId: string, draft: SnackDraft): Promise<stri
     createdAt: Date.now(),
   })
   if (!snack) throw new Error('Could not save that snack.')
-  writeAll(userId, [snack, ...readAll(userId)])
+  await upsertCloud(snack)
+  cacheLocal(userId, [snack, ...readAllLocal(userId).filter((item) => item.id !== id)])
   return id
 }
 
@@ -50,23 +72,62 @@ export async function updateSnack(
   id: string,
   patch: Partial<Pick<SavedSnack, 'questions' | 'model' | 'smartAnswers' | 'rawText' | 'seconds' | 'title'>>,
 ): Promise<void> {
-  const snacks = readAll(userId)
-  const index = snacks.findIndex((snack) => snack.id === id)
-  const current = snacks[index]
+  const listed = await listSnacks(userId)
+  const current = listed.find((snack) => snack.id === id)
   if (!current) return
   const next = toSavedSnack(id, { ...current, ...patch, ownerId: userId })
   if (!next) throw new Error('Could not save that snack.')
-  const copy = snacks.slice()
-  copy[index] = next
-  writeAll(userId, copy)
+  await upsertCloud(next)
+  cacheLocal(
+    userId,
+    listed.map((snack) => (snack.id === id ? next : snack)),
+  )
 }
 
 export async function listSnacks(userId: string): Promise<SavedSnack[]> {
-  return readAll(userId).sort((a, b) => b.createdAt - a.createdAt)
+  try {
+    const rows = await apiListSnacks()
+    const snacks: SavedSnack[] = []
+    for (const row of rows) {
+      const snack = toSavedSnack(row.id, row)
+      if (snack) snacks.push(snack)
+    }
+    cacheLocal(userId, snacks)
+    return snacks
+  } catch {
+    return readAllLocal(userId).sort((a, b) => b.createdAt - a.createdAt)
+  }
 }
 
 export async function deleteSnack(userId: string, id: string): Promise<void> {
-  writeAll(userId, readAll(userId).filter((snack) => snack.id !== id))
+  try {
+    await apiDeleteSnack(id)
+  } catch (err) {
+    if (!isVaultOffline(err)) throw err
+  }
+  cacheLocal(userId, readAllLocal(userId).filter((snack) => snack.id !== id))
+}
+
+export async function migrateLocalSnacks(userId: string, email: string): Promise<void> {
+  const legacyId = accountId(email)
+  if (legacyId === userId) return
+  const legacy = readAllLocal(legacyId)
+  if (legacy.length === 0) return
+  const existing = await listSnacks(userId)
+  if (existing.length > 0) return
+  for (const snack of legacy) {
+    const next = toSavedSnack(snack.id, { ...snack, ownerId: userId })
+    if (!next) continue
+    try {
+      await upsertCloud(next)
+    } catch {
+      // Keep local copy if the vault is still coming up.
+    }
+  }
+  cacheLocal(
+    userId,
+    legacy.map((snack) => ({ ...snack, ownerId: userId })),
+  )
 }
 
 export function snackErrorMessage(error: unknown): string {

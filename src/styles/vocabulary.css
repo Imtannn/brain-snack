@@ -32,13 +32,15 @@
   width: min(100%, 56rem);
   margin: 0 auto;
   padding: var(--space-3) var(--space-4);
-  display: flex;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-areas: 'brand tools auth';
   align-items: center;
-  justify-content: space-between;
-  gap: var(--space-3);
+  gap: var(--space-2) var(--space-3);
 }
 
 .top-nav__brand {
+  grid-area: brand;
   display: flex;
   align-items: center;
   gap: var(--space-2);
@@ -78,12 +80,28 @@
   white-space: nowrap;
 }
 
-.top-nav__actions {
+.top-nav__tools {
+  grid-area: tools;
   display: flex;
   align-items: center;
   justify-content: flex-end;
   gap: var(--space-2);
   min-width: 0;
+}
+
+.top-nav__auth {
+  grid-area: auth;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-shrink: 0;
+  min-width: max-content;
+  z-index: 2;
+}
+
+.top-nav__login {
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 .top-nav__account {
@@ -775,12 +793,6 @@
     padding: var(--space-3);
     gap: var(--space-2);
   }
-  .top-nav__title {
-    display: none;
-  }
-  .top-nav__account-btn {
-    max-width: 8.5rem;
-  }
 }
 .vocab-chrome {
   display: flex;
@@ -987,13 +999,6 @@
   text-align: center;
 }
 
-.auth-switch {
-  margin: 0;
-  text-align: center;
-  font-size: var(--text-sm);
-  color: var(--ink-soft);
-}
-
 .auth-text-btn {
   border: 0;
   background: none;
@@ -1011,52 +1016,6 @@
   cursor: wait;
 }
 
-.auth-divider {
-  display: grid;
-  grid-template-columns: 1fr auto 1fr;
-  align-items: center;
-  gap: var(--space-3);
-  color: var(--ink-muted);
-  font-size: var(--text-xs);
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-
-.auth-divider::before,
-.auth-divider::after {
-  content: '';
-  height: 2px;
-  background: var(--border);
-}
-
-.auth-google-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-2);
-}
-
-.auth-code-input {
-  font-family: var(--font-mono);
-  letter-spacing: 0.28em;
-  text-align: center;
-}
-
-.auth-dev-code {
-  margin: 0;
-  padding: var(--space-3);
-  border: 2px solid var(--border);
-  border-radius: var(--radius-lg);
-  background: var(--bg-subtle);
-  text-align: center;
-}
-
-.auth-dev-code strong {
-  font-family: var(--font-mono);
-  letter-spacing: 0.12em;
-}
-
 .modal-head h2 {
   margin: 0;
   font-family: var(--font-display);
@@ -1064,18 +1023,53 @@
   font-weight: 900;
 }
 
-@media (max-width: 640px) {
+@media (max-width: 767px) {
   .vocab-bar {
     flex-direction: column;
   }
 
-  .vocab-bar__actions,
-  .top-nav__actions {
+  .vocab-bar__actions {
     justify-content: flex-start;
   }
 
   .top-nav__inner {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      'brand auth'
+      'tools tools';
+    overflow: visible;
+  }
+
+  .top-nav__title {
+    display: none;
+  }
+
+  .top-nav__brand {
     flex-wrap: wrap;
+  }
+
+  .top-nav__auth {
+    justify-self: end;
+  }
+
+  .top-nav__tools {
+    justify-content: stretch;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .speech-lang {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .speech-lang select {
+    width: 100%;
+    max-width: none;
+  }
+
+  .top-nav__account-btn {
+    max-width: 10rem;
   }
 
   .vocab-snack {
