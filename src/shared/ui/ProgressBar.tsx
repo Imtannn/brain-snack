@@ -1,4 +1,4 @@
-import { useEffect, useState, type CSSProperties } from 'react'
+import type { CSSProperties } from 'react'
 
 export type ProgressBarProps = {
   progress: number
@@ -11,9 +11,9 @@ export type ProgressBarProps = {
 
 export function ProgressBar({
   progress,
-  className = 'progress-loader-bar',
-  fillClassName = 'progress-loader-bar-fill',
-  bgClassName = 'progress-loader-bar-bg',
+  className,
+  fillClassName,
+  bgClassName,
   style,
   'aria-label': ariaLabel,
 }: ProgressBarProps) {
@@ -38,30 +38,4 @@ export function ProgressBar({
       />
     </div>
   )
-}
-
-/**
- * Soft progress while assets load — creeps toward ~88%, then snaps to 100%
- * when `ready`.
- */
-export function useProgressCreep(ready = false, min = 8, cap = 88): number {
-  const [progress, setProgress] = useState(min)
-
-  useEffect(() => {
-    if (ready) {
-      setProgress(100)
-      return
-    }
-    setProgress(min)
-    const id = window.setInterval(() => {
-      setProgress((prev) => {
-        if (prev >= cap) return prev
-        const step = prev < 40 ? 3.5 : prev < 70 ? 2 : 0.8
-        return Math.min(cap, prev + step)
-      })
-    }, 280)
-    return () => window.clearInterval(id)
-  }, [ready, min, cap])
-
-  return progress
 }

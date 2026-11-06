@@ -1,4 +1,3 @@
-import { Slot } from '@radix-ui/react-slot'
 import {
   forwardRef,
   type ButtonHTMLAttributes,
@@ -18,7 +17,6 @@ type Props = ButtonHTMLAttributes<HTMLButtonElement> & {
   variant?: ButtonVariant
   size?: ButtonSize
   block?: boolean
-  asChild?: boolean
   children?: ReactNode
 }
 
@@ -27,7 +25,6 @@ export const Button = forwardRef<HTMLButtonElement, Props>(function Button(
     variant = 'primary',
     size = 'md',
     block = false,
-    asChild = false,
     className,
     type = 'button',
     children,
@@ -35,9 +32,8 @@ export const Button = forwardRef<HTMLButtonElement, Props>(function Button(
   },
   ref,
 ) {
-  const Comp = asChild ? Slot : 'button'
   return (
-    <Comp
+    <button
       ref={ref}
       type={type}
       className={cx(
@@ -50,6 +46,6 @@ export const Button = forwardRef<HTMLButtonElement, Props>(function Button(
       {...rest}
     >
       {children}
-    </Comp>
+    </button>
   )
 })

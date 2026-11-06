@@ -43,7 +43,6 @@ type AuthContextValue = {
   verifyLoginCode: (email: string, code: string) => Promise<void>
   signInWithGoogle: () => Promise<void>
   signOutUser: () => Promise<void>
-  clearError: () => void
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null)
@@ -62,7 +61,6 @@ const signedOutAuth: AuthContextValue = {
   verifyLoginCode: async () => {},
   signInWithGoogle: async () => {},
   signOutUser: async () => {},
-  clearError: () => {},
 }
 
 export function useAuth(): AuthContextValue {
@@ -151,8 +149,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null)
   }, [])
 
-  const clearError = useCallback(() => setError(null), [])
-
   const value = useMemo(
     () => ({
       user,
@@ -163,9 +159,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       verifyLoginCode,
       signInWithGoogle,
       signOutUser,
-      clearError,
     }),
-    [user, error, login, requestLoginCode, verifyLoginCode, signInWithGoogle, signOutUser, clearError],
+    [user, error, login, requestLoginCode, verifyLoginCode, signInWithGoogle, signOutUser],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

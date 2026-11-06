@@ -1,34 +1,34 @@
 import { useEffect, useState } from 'react'
-import { speakWord, stopSpeaking } from '../../lib/gemini/speak'
+import { primeSpeech, speakWord, stopSpeaking } from '../../lib/speech/speak'
 
-export function HearButton({
-  text,
-  apiKey = null,
-}: {
-  text: string
-  apiKey?: string | null
-}) {
+export function HearButton({ text, lang = '' }: { text: string; lang?: string }) {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
-  const label = apiKey ? 'Hear with Brainy' : 'Hear word'
 
   useEffect(() => {
+    primeSpeech()
     stopSpeaking()
     setBusy(false)
     setError('')
     return () => stopSpeaking()
   }, [text])
 
-  async function hear() {
+  function hear() {
     if (busy || !text.trim()) return
     setBusy(true)
     setError('')
     try {
-      await speakWord(text, { apiKey })
+      speakWord(text, {
+        lang,
+        onEnd: () => setBusy(false),
+        onError: (message) => {
+          setBusy(false)
+          setError(message)
+        },
+      })
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not play that word.')
-    } finally {
       setBusy(false)
+      setError(err instanceof Error ? err.message : 'Could not play that word.')
     }
   }
 
@@ -37,11 +37,11 @@ export function HearButton({
       <button
         type="button"
         className="vocab-hear__btn"
-        aria-label={label}
-        title={label}
+        aria-label="Hear word"
+        title="Hear word"
         disabled={busy || !text.trim()}
         aria-busy={busy || undefined}
-        onClick={() => void hear()}
+        onClick={hear}
       >
         <span aria-hidden="true">{busy ? '…' : '🔊'}</span>
         <span>{busy ? 'Speaking…' : 'Hear'}</span>

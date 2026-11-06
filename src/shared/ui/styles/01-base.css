@@ -252,67 +252,6 @@ textarea.ds-field__control {
   border-color: color-mix(in srgb, var(--signal) 55%, var(--line));
 }
 
-/* —— Badge —— */
-
-.ds-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-1);
-  height: 1.4rem;
-  padding: 0 0.55rem;
-  border-radius: var(--radius-pill);
-  font-size: var(--text-xs);
-  font-weight: var(--weight-semibold);
-  letter-spacing: 0.02em;
-  line-height: 1;
-  background: var(--bg-subtle);
-  color: var(--ink-soft);
-}
-
-.ds-badge--signal {
-  background: var(--signal-soft);
-  color: var(--signal);
-}
-
-.ds-badge--inverse {
-  background: var(--ink);
-  color: var(--bg);
-}
-
-.ds-badge--success {
-  background: color-mix(in srgb, var(--success) 16%, transparent);
-  color: var(--success);
-}
-
-.ds-badge--warning {
-  background: color-mix(in srgb, var(--warn) 18%, transparent);
-  color: var(--warn);
-}
-
-.ds-badge--danger {
-  background: color-mix(in srgb, var(--danger) 16%, transparent);
-  color: var(--danger);
-}
-
-.ds-badge--info {
-  background: color-mix(in srgb, var(--info) 16%, transparent);
-  color: var(--info);
-}
-
-/* Dark translucent badge for text laid over images and the 3D viewport. */
-.ds-badge--glass {
-  background: rgba(12, 12, 14, 0.78);
-  color: #ffffff;
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-}
-
-.ds-badge--sm {
-  height: 1.15rem;
-  padding: 0 0.4rem;
-  font-size: 0.65rem;
-}
-
 /* —— Surface —— */
 
 .ds-surface {
@@ -350,27 +289,6 @@ textarea.ds-field__control {
   display: flex;
   flex-direction: column;
   align-items: stretch;
-}
-
-.ds-inline {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  flex-wrap: wrap;
-}
-
-.ds-separator {
-  height: 1px;
-  width: 100%;
-  border: 0;
-  margin: 0;
-  background: var(--line);
-}
-
-.ds-separator--vert {
-  width: 1px;
-  height: 1.25rem;
-  background: var(--line);
 }
 
 /* —— Type helpers —— */

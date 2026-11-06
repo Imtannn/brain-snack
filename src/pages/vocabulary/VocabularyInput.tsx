@@ -28,6 +28,15 @@ export function VocabularyInput({
   smartAnswers = false,
   onSmartAnswers,
   canUseSmartAnswers = false,
+  canSave = false,
+  saveTitle = '',
+  onSaveTitle,
+  saveOpen = false,
+  onOpenSave,
+  onSave,
+  saving = false,
+  saved = false,
+  saveError = '',
 }: {
   paste: string
   secondsText: string
@@ -41,6 +50,15 @@ export function VocabularyInput({
   smartAnswers?: boolean
   onSmartAnswers?: (value: boolean) => void
   canUseSmartAnswers?: boolean
+  canSave?: boolean
+  saveTitle?: string
+  onSaveTitle?: (value: string) => void
+  saveOpen?: boolean
+  onOpenSave?: () => void
+  onSave?: () => void
+  saving?: boolean
+  saved?: boolean
+  saveError?: string
 }) {
   return (
     <form
@@ -121,9 +139,49 @@ export function VocabularyInput({
           </div>
         ) : null}
 
-        <Button type="submit" block size="lg" className="btn-pop" disabled={busy} aria-busy={busy || undefined}>
-          {proceedLabel}
-        </Button>
+        {canSave ? (
+          <div className="vocab-save-inline">
+            {saveOpen ? (
+              <TextField
+                label="Snack name"
+                value={saveTitle}
+                placeholder="French Café Words"
+                disabled={busy || saving || saved}
+                onChange={(event) => onSaveTitle?.(event.target.value)}
+              />
+            ) : null}
+            <div className="vocab-proceed-row">
+              <Button
+                type="button"
+                size="lg"
+                variant="quiet"
+                className="btn-pop"
+                disabled={busy || saving || saved}
+                aria-busy={saving || undefined}
+                onClick={() => (saveOpen ? onSave?.() : onOpenSave?.())}
+              >
+                {saved ? 'Saved' : saving ? 'Saving…' : 'Save Snack'}
+              </Button>
+              <Button type="submit" size="lg" block className="btn-pop vocab-proceed-row__go" disabled={busy} aria-busy={busy || undefined}>
+                {proceedLabel}
+              </Button>
+            </div>
+            {saved ? (
+              <p className="vocab-save-toast" role="status">
+                Snack saved. Crunch Again plays this list from Your Snack Vault.
+              </p>
+            ) : null}
+            {saveError ? (
+              <p className="vocab-auth-error" role="alert">
+                {saveError}
+              </p>
+            ) : null}
+          </div>
+        ) : (
+          <Button type="submit" block size="lg" className="btn-pop" disabled={busy} aria-busy={busy || undefined}>
+            {proceedLabel}
+          </Button>
+        )}
       </Stack>
     </form>
   )

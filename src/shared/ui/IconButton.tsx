@@ -1,11 +1,9 @@
-import { Slot } from '@radix-ui/react-slot'
 import { forwardRef, type ButtonHTMLAttributes, type ReactNode } from 'react'
 import { cx } from './cx'
 
 type Props = ButtonHTMLAttributes<HTMLButtonElement> & {
   active?: boolean
   signal?: boolean
-  asChild?: boolean
   label: string
   children: ReactNode
 }
@@ -15,7 +13,6 @@ export const IconButton = forwardRef<HTMLButtonElement, Props>(
     {
       active = false,
       signal = false,
-      asChild = false,
       label,
       className,
       type = 'button',
@@ -24,9 +21,8 @@ export const IconButton = forwardRef<HTMLButtonElement, Props>(
     },
     ref,
   ) {
-    const Comp = asChild ? Slot : 'button'
     return (
-      <Comp
+      <button
         ref={ref}
         type={type}
         aria-label={label}
@@ -41,7 +37,7 @@ export const IconButton = forwardRef<HTMLButtonElement, Props>(
         {...rest}
       >
         {children}
-      </Comp>
+      </button>
     )
   },
 )

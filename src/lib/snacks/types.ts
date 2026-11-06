@@ -6,4 +6,6 @@ export type SnackDraft = {
   seconds: number
   questions: readonly QuizQuestion[]
   model: string | null
+  /** When true, Crunch Again of a question-less snack asks Brainy once. */
+  smartAnswers?: boolean
 }

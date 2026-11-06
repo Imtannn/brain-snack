@@ -52,7 +52,7 @@ export function SavedSnacks({
       {loading ? <p className="ds-subtitle">Loading your snacks…</p> : null}
       {error ? <p className="vocab-auth-error" role="alert">{error}</p> : null}
       {!loading && snacks.length === 0 && !error ? (
-        <p className="ds-subtitle">Finish a snack and save it to crunch it again here.</p>
+        <p className="ds-subtitle">Save a snack, then crunch it again here.</p>
       ) : null}
       <Stack gap="3">
         {snacks.map((snack) => (
@@ -60,7 +60,7 @@ export function SavedSnacks({
             <div className="vocab-snack__copy">
               <p className="vocab-snack__title">{snack.title}</p>
               <p className="ds-subtitle">
-                {snack.questions.length} questions
+                {snack.questions.length === 0 ? 'Saved list' : `${snack.questions.length} questions`}
                 {snack.createdAt
                   ? ` · ${new Date(snack.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}`
                   : ''}

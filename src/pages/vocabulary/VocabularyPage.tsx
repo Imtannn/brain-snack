@@ -1,36 +1,16 @@
-import { useState } from 'react'
+import { useRef } from 'react'
 import { Button, TextField } from '@shared/ui'
 import { useAuth } from '../../lib/auth/AuthProvider'
 import { useGeminiKey } from '../../lib/auth/GeminiKeyProvider'
-import { randomUnit } from '../../lib/core/clock'
-import { uid } from '../../lib/core/uid'
-import { modelNotice as describeModel } from '../../lib/gemini/client'
-import { generateQuizFromNotes } from '../../lib/gemini/generateQuiz'
-import { saveSnack, snackErrorMessage } from '../../lib/snacks/store'
-import { snackTitle, type SavedSnack } from '../../lib/snacks/snackRecord'
-import { DEFAULT_SECONDS, QUIZ_CHOICE_COUNT } from '../../lib/vocabulary/constants'
-import { parseVocabularyPaste } from '../../lib/vocabulary/parseNotes'
-import { buildMeaningQuiz, clampQuizSeconds } from '../../lib/vocabulary/quiz'
-import type { AnswerRecord, QuizQuestion, VocabNote } from '../../lib/vocabulary/types'
-import '../../styles/vocabulary.css'
+import { modelNotice } from '../../lib/gemini/client'
+import type { QuizQuestion } from '../../lib/vocabulary/types'
+import { snackTitle } from '../../lib/snacks/snackRecord'
+import type { SavedSnack } from '../../lib/snacks/snackRecord'
 import { VocabChrome } from './VocabChrome'
 import { VocabularyInput } from './VocabularyInput'
 import { VocabularyQuiz } from './VocabularyQuiz'
-
-type QuizRun = {
-  runId: string
-  questions: QuizQuestion[]
-  seconds: number
-  rawText: string
-  pro: boolean
-  model: string | null
-  fallback: boolean
-}
-
-type VocabPhase =
-  | { kind: 'input' }
-  | ({ kind: 'quiz' } & QuizRun)
-  | ({ kind: 'done'; answers: AnswerRecord[] } & Omit<QuizRun, 'runId'>)
+import { useQuizRun } from './useQuizRun'
+import { useSnackSave } from './useSnackSave'
 
 export function VocabularyPage({
   restudySnack = null,
@@ -41,127 +21,30 @@ export function VocabularyPage({
 } = {}) {
   const { user } = useAuth()
   const { key: geminiKey } = useGeminiKey()
-  const [paste, setPaste] = useState(restudySnack?.rawText ?? '')
-  const [secondsText, setSecondsText] = useState(String(restudySnack?.seconds ?? DEFAULT_SECONDS))
-  const [smartAnswers, setSmartAnswers] = useState(false)
-  const [error, setError] = useState('')
-  const [phase, setPhase] = useState<VocabPhase>(() =>
-    restudySnack
-      ? {
-          // Replay the saved questions exactly. No parser, no Gemini call.
-          kind: 'quiz',
-          runId: uid('run'),
-          questions: restudySnack.questions,
-          seconds: clampQuizSeconds(restudySnack.seconds),
-          rawText: restudySnack.rawText,
-          pro: true,
-          model: restudySnack.model,
-          fallback: false,
-        }
-      : { kind: 'input' },
-  )
-  const [generating, setGenerating] = useState(false)
-  const [saving, setSaving] = useState(false)
-  const [saved, setSaved] = useState(false)
-  const [saveTitle, setSaveTitle] = useState('')
-  const [saveError, setSaveError] = useState('')
   const canUseSmartAnswers = Boolean(user && geminiKey)
+  const rememberRef = useRef<(questions: readonly QuizQuestion[], model: string | null) => void>(() => {})
+  const readyRef = useRef<() => void>(() => {})
+  const quiz = useQuizRun(
+    restudySnack,
+    geminiKey,
+    canUseSmartAnswers,
+    (questions, model) => rememberRef.current(questions, model),
+    () => readyRef.current(),
+  )
+  const save = useSnackSave({
+    user,
+    restudySnack,
+    paste: quiz.paste,
+    secondsText: quiz.secondsText,
+    smartAnswers: quiz.smartAnswers,
+    canUseSmartAnswers,
+    phase: quiz.phase,
+    setError: quiz.setError,
+  })
+  rememberRef.current = save.rememberQuestions
+  readyRef.current = () => save.setSaveError('')
 
-  function startQuiz() {
-    if (generating) return
-    const seconds = clampQuizSeconds(Number(secondsText))
-    setSecondsText(String(seconds))
-    if (canUseSmartAnswers && smartAnswers) {
-      void startProQuiz(seconds)
-      return
-    }
-    startLocalQuiz(seconds)
-  }
-
-  function startLocalQuiz(seconds: number) {
-    const notes = notesFromPaste(paste)
-    const questions = buildMeaningQuiz(notes, randomUnit)
-    if (questions.length === 0) {
-      setError(quizError(notes.length))
-      setPhase({ kind: 'input' })
-      return
-    }
-    setError('')
-    setSaved(false)
-    setSaveError('')
-    setPhase({
-      kind: 'quiz',
-      runId: uid('run'),
-      questions,
-      seconds,
-      rawText: paste,
-      pro: false,
-      model: null,
-      fallback: false,
-    })
-  }
-
-  async function startProQuiz(seconds: number) {
-    const text = paste.trim()
-    if (!text) {
-      setError('Paste a list, notes, or a topic before asking Brainy.')
-      setPhase({ kind: 'input' })
-      return
-    }
-    setGenerating(true)
-    setError('')
-    try {
-      const result = await generateQuizFromNotes(geminiKey, text)
-      if (result.questions.length === 0) {
-        setError('Brainy did not return any usable questions. Try clearer notes or a topic.')
-        setPhase({ kind: 'input' })
-        return
-      }
-      setSaved(false)
-      setSaveError('')
-      setPhase({
-        kind: 'quiz',
-        runId: uid('run'),
-        questions: result.questions,
-        seconds,
-        rawText: text,
-        pro: true,
-        model: result.model,
-        fallback: result.fallback,
-      })
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Brainy could not build this snack.')
-      setPhase({ kind: 'input' })
-    } finally {
-      setGenerating(false)
-    }
-  }
-
-  async function saveCurrent() {
-    if (!user || phase.kind !== 'done' || saving || saved) return
-    const title = saveTitle.trim()
-    if (!title) {
-      setSaveError('Name this snack before saving.')
-      return
-    }
-    setSaving(true)
-    setSaveError('')
-    try {
-      await saveSnack(user.uid, {
-        title,
-        rawText: phase.rawText,
-        seconds: phase.seconds,
-        questions: phase.questions,
-        model: phase.model,
-      })
-      setSaved(true)
-    } catch (err) {
-      setSaveError(snackErrorMessage(err))
-    } finally {
-      setSaving(false)
-    }
-  }
-
+  const { phase } = quiz
   const banner =
     user && !geminiKey ? 'Add a Brainy key in Settings to unlock Smart Answers and the tutor.' : ''
 
@@ -174,24 +57,37 @@ export function VocabularyPage({
             subtitle="Paste text — a list, notes, or a topic — then crunch the meanings."
           />
           <VocabularyInput
-            paste={paste}
-            secondsText={secondsText}
-            error={error}
+            paste={quiz.paste}
+            secondsText={quiz.secondsText}
+            error={quiz.error}
             banner={banner}
-            busy={generating}
-            proceedLabel={generating ? 'Crunching with Brainy…' : 'Proceed'}
-            smartAnswers={smartAnswers}
+            busy={quiz.generating}
+            proceedLabel={quiz.generating ? 'Crunching with Brainy…' : 'Proceed'}
+            smartAnswers={quiz.smartAnswers}
             canUseSmartAnswers={canUseSmartAnswers}
-            onSmartAnswers={setSmartAnswers}
+            onSmartAnswers={quiz.setSmartAnswers}
+            canSave={Boolean(user)}
+            saveTitle={save.saveTitle}
+            saveOpen={save.saveOpen}
+            saving={save.saving}
+            saved={save.saved}
+            saveError={save.saveError}
+            onSaveTitle={(value) => {
+              save.setSaveTitle(value)
+              save.setSaveError('')
+            }}
+            onOpenSave={save.openSave}
+            onSave={() => void save.saveList()}
             onPaste={(value) => {
-              setPaste(value)
-              setError('')
+              quiz.setPaste(value)
+              quiz.setError('')
+              save.detach()
             }}
             onSeconds={(value) => {
-              setSecondsText(value)
-              setError('')
+              quiz.setSecondsText(value)
+              quiz.setError('')
             }}
-            onProceed={startQuiz}
+            onProceed={quiz.startQuiz}
           />
         </>
       ) : null}
@@ -202,7 +98,7 @@ export function VocabularyPage({
             eyebrow="Quick Drill"
             title="Brain Snack"
             actions={
-              <Button variant="quiet" onClick={() => setPhase({ kind: 'input' })}>
+              <Button variant="quiet" onClick={() => quiz.setPhase({ kind: 'input' })}>
                 Edit bites
               </Button>
             }
@@ -211,13 +107,12 @@ export function VocabularyPage({
             key={phase.runId}
             questions={phase.questions}
             seconds={phase.seconds}
-            modelNotice={phase.pro && phase.model ? describeModel(phase.model, phase.fallback) : ''}
+            modelNotice={phase.pro && phase.model ? modelNotice() : ''}
             tutor={phase.pro && geminiKey ? { apiKey: geminiKey } : null}
             onFinish={(answers) => {
-              setSaved(false)
-              setSaveError('')
-              setSaveTitle(snackTitle(phase.rawText))
-              setPhase({
+              save.setSaveError('')
+              if (!save.saved) save.setSaveTitle(snackTitle(phase.rawText))
+              quiz.setPhase({
                 kind: 'done',
                 questions: phase.questions,
                 answers: answers.slice(),
@@ -225,7 +120,6 @@ export function VocabularyPage({
                 rawText: phase.rawText,
                 pro: phase.pro,
                 model: phase.model,
-                fallback: phase.fallback,
               })
             }}
           />
@@ -239,7 +133,7 @@ export function VocabularyPage({
             title="Brain Snack"
             subtitle="Bite-sized session complete"
             actions={
-              <Button variant="quiet" onClick={() => setPhase({ kind: 'input' })}>
+              <Button variant="quiet" onClick={() => quiz.setPhase({ kind: 'input' })}>
                 Edit list
               </Button>
             }
@@ -247,19 +141,18 @@ export function VocabularyPage({
           <Finished
             correct={phase.answers.filter((answer) => answer.correct).length}
             total={phase.answers.length}
-            onAgain={startQuiz}
+            onAgain={quiz.startQuiz}
             onHome={onHome}
-            canSave={Boolean(user)}
-            title={saveTitle}
+            canSave={Boolean(user) && !save.saved}
+            title={save.saveTitle}
             onTitle={(value) => {
-              setSaveTitle(value)
-              setSaveError('')
-              setSaved(false)
+              save.setSaveTitle(value)
+              save.setSaveError('')
             }}
-            saving={saving}
-            saved={saved}
-            saveError={saveError}
-            onSave={() => void saveCurrent()}
+            saving={save.saving}
+            saved={save.saved}
+            saveError={save.saveError}
+            onSave={() => void save.saveCurrent()}
           />
         </>
       ) : null}
@@ -306,23 +199,23 @@ function Finished({
       <p className="ds-subtitle">
         {correct} of {total} correct.
       </p>
+      {saved ? (
+        <p className="vocab-save-toast" role="status">
+          Snack saved. It’s waiting in Your Snack Vault.
+        </p>
+      ) : null}
       {canSave ? (
         <div className="vocab-save">
           <TextField
             label="Snack name"
             value={title}
             placeholder="French Café Words"
-            disabled={saving || saved}
+            disabled={saving}
             onChange={(event) => onTitle(event.target.value)}
           />
-          <Button onClick={onSave} size="lg" block className="btn-pop" disabled={saving || saved} aria-busy={saving || undefined}>
-            {saved ? 'Saved' : saving ? 'Saving…' : 'Save Snack'}
+          <Button onClick={onSave} size="lg" block className="btn-pop" disabled={saving} aria-busy={saving || undefined}>
+            {saving ? 'Saving…' : 'Save Snack'}
           </Button>
-          {saved ? (
-            <p className="vocab-save-toast" role="status">
-              Snack saved. It’s waiting in Your Snack Vault.
-            </p>
-          ) : null}
           {saveError ? <p className="vocab-auth-error" role="alert">{saveError}</p> : null}
         </div>
       ) : null}
@@ -338,22 +231,4 @@ function Finished({
       </div>
     </div>
   )
-}
-
-function notesFromPaste(text: string): VocabNote[] {
-  const notes: VocabNote[] = []
-  for (const note of parseVocabularyPaste(text).notes) {
-    const word = note.word.trim()
-    const definition = note.definition.trim()
-    if (!word || !definition) continue
-    notes.push({ id: uid('note'), word, definition, context: '' })
-  }
-  return notes
-}
-
-function quizError(count: number): string {
-  if (count < QUIZ_CHOICE_COUNT) {
-    return `Need at least ${QUIZ_CHOICE_COUNT} word: meaning pairs for free mode — or turn on Brainy: Smart Answers if you have a key.`
-  }
-  return `Need at least ${QUIZ_CHOICE_COUNT} different English meanings so each question has ${QUIZ_CHOICE_COUNT} choices.`
 }

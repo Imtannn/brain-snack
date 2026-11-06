@@ -4,6 +4,7 @@ import { CHOICE_KEYS, TIMER_TICK_MS } from '../../lib/vocabulary/constants'
 import { advance, expireQuestion, remainingMs, selectChoice, startSession } from '../../lib/vocabulary/session'
 import type { AnswerRecord, QuizQuestion, QuizSessionState, RevealReason } from '../../lib/vocabulary/types'
 import { Button, type ButtonVariant, ProgressBar, Stack, Surface } from '@shared/ui'
+import { useSpeechLang } from '../../lib/speech/SpeechLangProvider'
 import { HearButton } from './HearButton'
 import { MarkdownText } from './MarkdownText'
 import { TutorPanel } from './TutorPanel'
@@ -21,32 +22,15 @@ export function VocabularyQuiz({
   tutor?: { apiKey: string } | null
   modelNotice?: string
 }) {
+  const { lang } = useSpeechLang()
   const [session, setSession] = useState<QuizSessionState>(() =>
     startSession(questions, seconds * 1000, perfNow()),
   )
-  const [now, setNow] = useState(() => session.startedAtPerf)
   const question = session.questions[session.index]
   const answering = session.phase === 'question'
-  const liveMs = remainingMs(session.startedAtPerf, session.limitMs, now)
-  const shownMs = answering ? liveMs : session.revealReason === 'timeout' ? 0 : (session.remainingAtRevealMs ?? 0)
-  const secondsLeft = Math.ceil(shownMs / 1000)
-  const low = answering && secondsLeft <= 4
-  const timedOut = session.revealReason === 'timeout'
-  const percent = session.limitMs === 0 ? 0 : (shownMs / session.limitMs) * 100
-
-  useEffect(() => {
-    if (!answering) return
-    const startedAt = session.startedAtPerf
-    const limitMs = session.limitMs
-    const id = window.setInterval(() => {
-      const tick = perfNow()
-      setNow(tick)
-      if (remainingMs(startedAt, limitMs, tick) <= 0) {
-        setSession((current) => expireQuestion(current, tick))
-      }
-    }, TIMER_TICK_MS)
-    return () => window.clearInterval(id)
-  }, [answering, session.startedAtPerf, session.limitMs])
+  const expire = useCallback((tick: number) => {
+    setSession((current) => expireQuestion(current, tick))
+  }, [])
 
   useEffect(() => {
     if (!answering || !question) return
@@ -89,34 +73,24 @@ export function VocabularyQuiz({
     setSession((current) => selectChoice(current, choiceId, perfNow()))
   }
 
-  const countClass = `vocab-timer__count${low ? ' is-low' : ''}${timedOut ? ' is-out' : ''}`
-
   return (
     <Stack gap="5">
-      <div className="vocab-timer" role="timer" aria-live="off" aria-atomic="true" aria-label={`${secondsLeft} seconds remaining`}>
-        <div className="vocab-timer__row">
-          <p className="ds-eyebrow">
-            Bite {session.index + 1} of {session.questions.length}
-          </p>
-          <p className={countClass}>
-            <span>⏳</span>
-            <span>{secondsLeft}s</span>
-          </p>
-        </div>
-        <ProgressBar
-          progress={percent}
-          className="vocab-timer__bar"
-          bgClassName="vocab-timer__track"
-          fillClassName={low || timedOut ? 'vocab-timer__fill is-low' : 'vocab-timer__fill'}
-          aria-label="Time remaining"
-        />
-      </div>
+      <QuizTimer
+        active={answering}
+        startedAtPerf={session.startedAtPerf}
+        limitMs={session.limitMs}
+        frozenMs={session.remainingAtRevealMs ?? 0}
+        timedOut={session.revealReason === 'timeout'}
+        index={session.index}
+        total={session.questions.length}
+        onExpire={expire}
+      />
 
       <div className="vocab-target-box">
         <p className="ds-eyebrow" style={{ color: 'var(--melon)', fontWeight: 800 }}>Choose the English meaning</p>
         <div className="vocab-prompt-row">
           <h2 className={question.prompt.length > 80 ? 'vocab-prompt is-long' : 'vocab-prompt'}>{question.prompt}</h2>
-          <HearButton text={question.prompt} apiKey={tutor?.apiKey ?? null} />
+          <HearButton text={question.prompt} lang={lang} />
         </div>
       </div>
 
@@ -143,7 +117,7 @@ export function VocabularyQuiz({
           question={question}
           reason={session.revealReason}
           selectedLabel={session.answers.at(-1)?.selectedLabel ?? null}
-          apiKey={tutor?.apiKey ?? null}
+          speechLang={lang}
         />
       ) : null}
 
@@ -170,16 +144,80 @@ export function VocabularyQuiz({
   )
 }
 
+function QuizTimer({
+  active,
+  startedAtPerf,
+  limitMs,
+  frozenMs,
+  timedOut,
+  index,
+  total,
+  onExpire,
+}: {
+  active: boolean
+  startedAtPerf: number
+  limitMs: number
+  frozenMs: number
+  timedOut: boolean
+  index: number
+  total: number
+  onExpire: (now: number) => void
+}) {
+  const [now, setNow] = useState(startedAtPerf)
+
+  useEffect(() => {
+    setNow(startedAtPerf)
+  }, [startedAtPerf])
+
+  useEffect(() => {
+    if (!active) return
+    const id = window.setInterval(() => {
+      const tick = perfNow()
+      setNow(tick)
+      if (remainingMs(startedAtPerf, limitMs, tick) <= 0) onExpire(tick)
+    }, TIMER_TICK_MS)
+    return () => window.clearInterval(id)
+  }, [active, limitMs, onExpire, startedAtPerf])
+
+  const liveMs = remainingMs(startedAtPerf, limitMs, now)
+  const shownMs = active ? liveMs : timedOut ? 0 : frozenMs
+  const secondsLeft = Math.ceil(shownMs / 1000)
+  const low = active && secondsLeft <= 4
+  const percent = limitMs === 0 ? 0 : (shownMs / limitMs) * 100
+  const countClass = `vocab-timer__count${low ? ' is-low' : ''}${timedOut ? ' is-out' : ''}`
+
+  return (
+    <div className="vocab-timer" role="timer" aria-live="off" aria-atomic="true" aria-label={`${secondsLeft} seconds remaining`}>
+      <div className="vocab-timer__row">
+        <p className="ds-eyebrow">
+          Bite {index + 1} of {total}
+        </p>
+        <p className={countClass}>
+          <span>⏳</span>
+          <span>{secondsLeft}s</span>
+        </p>
+      </div>
+      <ProgressBar
+        progress={percent}
+        className="vocab-timer__bar"
+        bgClassName="vocab-timer__track"
+        fillClassName={low || timedOut ? 'vocab-timer__fill is-low' : 'vocab-timer__fill'}
+        aria-label="Time remaining"
+      />
+    </div>
+  )
+}
+
 function Reveal({
   question,
   reason,
   selectedLabel,
-  apiKey,
+  speechLang,
 }: {
   question: QuizQuestion
   reason: RevealReason
   selectedLabel: string | null
-  apiKey?: string | null
+  speechLang?: string
 }) {
   const heading = reason === 'correct' ? 'Correct' : reason === 'wrong' ? 'Not quite' : 'Time is up'
   const meaning = `The English meaning is “${question.correctLabel}”.`
@@ -193,7 +231,7 @@ function Reveal({
       <p className="ds-eyebrow">{heading}</p>
       <p className="ds-body" style={{ fontWeight: 600 }}>{lead}</p>
       <MarkdownText text={question.explanation.summary} className="ds-body" />
-      <HearButton text={question.prompt} apiKey={apiKey ?? null} />
+      <HearButton text={question.prompt} lang={speechLang} />
     </Surface>
   )
 }

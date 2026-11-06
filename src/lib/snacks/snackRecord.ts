@@ -9,6 +9,7 @@ export type SavedSnack = {
   createdAt: number
   questions: QuizQuestion[]
   model: string | null
+  smartAnswers: boolean
 }
 
 export function snackTitle(rawText: string): string {
@@ -31,8 +32,10 @@ export function toSavedSnack(id: string, data: unknown): SavedSnack | null {
   const seconds = typeof record.seconds === 'number' && Number.isFinite(record.seconds) ? record.seconds : 15
   const createdAt = typeof record.createdAt === 'number' && Number.isFinite(record.createdAt) ? record.createdAt : 0
   const model = typeof record.model === 'string' ? record.model : null
-  if (!title || !ownerId || questions.length === 0) return null
-  return { id, ownerId, title, rawText, seconds, createdAt, questions, model }
+  const smartAnswers = record.smartAnswers === true
+  if (!title || !ownerId) return null
+  if (questions.length === 0 && rawText.trim().length === 0) return null
+  return { id, ownerId, title, rawText, seconds, createdAt, questions, model, smartAnswers }
 }
 
 function questionsFrom(value: unknown): QuizQuestion[] {

@@ -3,6 +3,8 @@ import { Button, Menu, MenuItem } from '@shared/ui'
 import { IconMoon, IconSun } from '../../components/icons/Icons'
 import { useAuth } from '../../lib/auth/AuthProvider'
 import { useGeminiKey } from '../../lib/auth/GeminiKeyProvider'
+import { useSpeechLang } from '../../lib/speech/SpeechLangProvider'
+import { isSpeechLang, SPEECH_LANGS } from '../../lib/speech/speechLang'
 import { useTheme } from '../../theme/ThemeProvider'
 import { LoginModal } from '../vocabulary/LoginModal'
 import { SettingsModal } from '../vocabulary/SettingsModal'
@@ -15,6 +17,7 @@ export function TopNav({
   onHome?: () => void
 }) {
   const { theme, toggleTheme } = useTheme()
+  const { lang, setLang } = useSpeechLang()
   const { user, ready, signOutUser } = useAuth()
   const { key, setKey } = useGeminiKey()
   const [loginOpen, setLoginOpen] = useState(false)
@@ -67,6 +70,23 @@ export function TopNav({
         </div>
 
         <div className="top-nav__actions">
+          <label className="speech-lang">
+            <span className="speech-lang__label">Hear</span>
+            <select
+              aria-label="Pronunciation language"
+              value={lang}
+              onChange={(event) => {
+                const next = event.target.value
+                if (isSpeechLang(next)) setLang(next)
+              }}
+            >
+              {SPEECH_LANGS.map((item) => (
+                <option key={item.id} value={item.id}>
+                  {item.label}
+                </option>
+              ))}
+            </select>
+          </label>
           <button
             type="button"
             className="vocab-theme-toggle"

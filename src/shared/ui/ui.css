@@ -1,7 +1,5 @@
 /* Shared UI primitives (`ds-*`). Parts are imported in order; the order is the cascade. */
 @import './styles/01-base.css';
 @import './styles/02-controls.css';
-@import './styles/03-choice.css';
 @import './styles/04-inputs.css';
 @import './styles/05-overlays.css';
-@import './styles/06-feedback.css';

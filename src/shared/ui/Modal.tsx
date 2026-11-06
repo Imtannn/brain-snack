@@ -2,8 +2,7 @@ import { useEffect, useId, useRef, type FormEvent, type KeyboardEvent, type Reac
 import { createPortal } from 'react-dom'
 import { IconButton } from './IconButton'
 
-/** Renders children in `document.body`, so an ancestor's transform cannot break a fixed overlay's centering. */
-export function ModalPortal({ children }: { children: ReactNode }) {
+function ModalPortal({ children }: { children: ReactNode }) {
   if (typeof document === 'undefined') return null
   return createPortal(children, document.body)
 }

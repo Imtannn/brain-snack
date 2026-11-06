@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Button, Stack, TextArea } from '@shared/ui'
-import type { GeminiContent, GeminiPart } from '../../lib/gemini/client'
+import { uid } from '../../lib/core/uid'
+import type { GeminiContent } from '../../lib/gemini/client'
 import {
   continueTutorChat,
   explainedBy,
@@ -14,14 +15,6 @@ type ChatMessage = {
   id: string
   role: 'user' | 'model'
   text: string
-  parts: GeminiPart[]
-}
-
-let messageCount = 0
-
-function nextMessageId(): string {
-  messageCount += 1
-  return `tutor-${messageCount}`
 }
 
 export function TutorPanel({
@@ -70,21 +63,20 @@ export function TutorPanel({
     setSending(true)
     setChatError('')
     try {
-      const userParts: GeminiPart[] = [{ text }]
       const history: GeminiContent[] = []
       if (explanation) {
         history.push({ role: 'user', parts: [{ text: prompt }] })
         history.push({ role: 'model', parts: [{ text: explanation }] })
       }
       for (const message of messages) {
-        history.push({ role: message.role, parts: message.parts })
+        history.push({ role: message.role, parts: [{ text: message.text }] })
       }
-      history.push({ role: 'user', parts: userParts })
+      history.push({ role: 'user', parts: [{ text }] })
       const reply = await continueTutorChat(apiKey, history)
       setMessages((current) => [
         ...current,
-        { id: nextMessageId(), role: 'user', text, parts: userParts },
-        { id: nextMessageId(), role: 'model', text: reply.text, parts: [{ text: reply.text }] },
+        { id: uid('tutor'), role: 'user', text },
+        { id: uid('tutor'), role: 'model', text: reply.text },
       ])
       setDraft('')
       setModelLine(explainedBy(reply.model, reply.fallback))

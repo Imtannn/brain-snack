@@ -18,7 +18,7 @@ describe('saved snack records', () => {
     expect(snackTitle('   \n')).toBe('Untitled snack')
   })
 
-  it('keeps a complete firestore document and drops a broken one', () => {
+  it('keeps a finished quiz and a named list, and drops an empty record', () => {
     expect(toSavedSnack('abc', {
       ownerId: 'user-1',
       title: 'French bites',
@@ -28,6 +28,14 @@ describe('saved snack records', () => {
       model: 'gemini-2.5-flash',
       questions: [question],
     })?.title).toBe('French bites')
+    expect(toSavedSnack('list', {
+      ownerId: 'user-1',
+      title: 'Café',
+      rawText: 'bonjour: hello',
+      seconds: 15,
+      questions: [],
+      smartAnswers: true,
+    })?.smartAnswers).toBe(true)
     expect(toSavedSnack('abc', { title: 'Missing questions', ownerId: 'user-1', questions: [] })).toBeNull()
   })
 })

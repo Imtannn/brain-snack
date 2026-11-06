@@ -22,11 +22,6 @@ type StackProps = HTMLAttributes<HTMLDivElement> & {
   children: ReactNode
 }
 
-type InlineProps = HTMLAttributes<HTMLDivElement> & {
-  gap?: SpaceToken
-  children: ReactNode
-}
-
 export function Stack({
   gap = '3',
   style,
@@ -43,41 +38,4 @@ export function Stack({
       {children}
     </div>
   )
-}
-
-export function Inline({
-  gap = '2',
-  style,
-  className,
-  children,
-  ...rest
-}: InlineProps) {
-  return (
-    <div
-      className={cx('ds-inline', className)}
-      style={{ gap: SPACE[gap], ...style } satisfies CSSProperties}
-      {...rest}
-    >
-      {children}
-    </div>
-  )
-}
-
-export function Separator({
-  vertical = false,
-  className,
-}: {
-  vertical?: boolean
-  className?: string
-}) {
-  if (vertical) {
-    return (
-      <div
-        role="separator"
-        aria-orientation="vertical"
-        className={cx('ds-separator', 'ds-separator--vert', className)}
-      />
-    )
-  }
-  return <hr className={cx('ds-separator', className)} />
 }

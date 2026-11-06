@@ -1,9 +1,7 @@
 export const PRIMARY_MODEL = 'gemini-2.5-flash'
 export const FALLBACK_MODEL = 'gemini-3.8-flash'
 
-export type GeminiPart =
-  | { text: string }
-  | { inlineData: { mimeType: string; data: string } }
+export type GeminiPart = { text: string }
 
 export type GeminiContent = {
   role: 'user' | 'model'
@@ -104,6 +102,6 @@ export async function generateContent(
   throw new Error(lastError)
 }
 
-export function modelNotice(_model: string, _fallback: boolean): string {
+export function modelNotice(): string {
   return 'Built with Brainy.'
 }
