@@ -1,7 +1,7 @@
 import { mkdir, readFile, rename, writeFile } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { getPool, migrate as migratePostgres } from './db.mjs'
+import { getPool, hashPin, migrate as migratePostgres, newUserId, pinMatches } from './db.mjs'
 
 const empty = () => ({
   users: [],
@@ -77,6 +77,44 @@ export async function vaultHealth() {
   }
 }
 
+export async function claimAccount(email, pin) {
+  if (usePostgres()) {
+    const { rows } = await getPool().query('select id, email, pin_hash from users where email = $1', [email])
+    let user = rows[0]
+    if (!user) {
+      const id = newUserId()
+      const pin_hash = await hashPin(pin)
+      await getPool().query('insert into users (id, email, pin_hash, created_at) values ($1, $2, $3, $4)', [
+        id,
+        email,
+        pin_hash,
+        Date.now(),
+      ])
+      return { id, email }
+    }
+    if (!(await pinMatches(pin, user.pin_hash))) {
+      const err = new Error('Wrong PIN for that email.')
+      err.status = 401
+      throw err
+    }
+    return { id: user.id, email: user.email }
+  }
+  return withFile(async (data) => {
+    let user = data.users.find((item) => item.email === email)
+    if (!user) {
+      user = { id: newUserId(), email, pin_hash: await hashPin(pin), created_at: Date.now() }
+      data.users.push(user)
+      return { id: user.id, email: user.email }
+    }
+    if (!(await pinMatches(pin, user.pin_hash))) {
+      const err = new Error('Wrong PIN for that email.')
+      err.status = 401
+      throw err
+    }
+    return { id: user.id, email: user.email }
+  })
+}
+
 export async function findUserByEmail(email) {
   if (usePostgres()) {
     const { rows } = await getPool().query('select id, email, pin_hash from users where email = $1', [email])
@@ -140,19 +178,29 @@ export async function deleteSession(hash) {
   })
 }
 
-export async function listSnacks(ownerId) {
+export async function listSnacks(user) {
+  const ownerId = user.id
+  const email = user.email
   if (usePostgres()) {
     const { rows } = await getPool().query(
-      'select id, owner_id, title, raw_text, seconds, created_at, questions, model, smart_answers from snacks where owner_id = $1 order by created_at desc',
-      [ownerId],
+      `select s.id, s.owner_id, s.title, s.raw_text, s.seconds, s.created_at, s.questions, s.model, s.smart_answers
+       from snacks s
+       join users u on u.id = s.owner_id
+       where u.email = $1 or s.owner_id = $2
+       order by s.created_at desc`,
+      [email, ownerId],
     )
     return rows
   }
-  return withFile((data) =>
-    data.snacks
-      .filter((snack) => snack.owner_id === ownerId)
-      .sort((a, b) => Number(b.created_at) - Number(a.created_at)),
-  )
+  return withFile((data) => {
+    const ids = new Set(
+      data.users.filter((item) => item.id === ownerId || item.email === email).map((item) => item.id),
+    )
+    ids.add(ownerId)
+    return data.snacks
+      .filter((snack) => ids.has(snack.owner_id))
+      .sort((a, b) => Number(b.created_at) - Number(a.created_at))
+  })
 }
 
 export async function upsertSnack(snack) {

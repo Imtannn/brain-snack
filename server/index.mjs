@@ -5,14 +5,13 @@ import { serve } from '@hono/node-server'
 import { serveStatic } from '@hono/node-server/serve-static'
 import { Hono } from 'hono'
 import { deleteCookie, getCookie, setCookie } from 'hono/cookie'
-import { hashPin, newToken, newUserId, pinMatches, tokenHash } from './db.mjs'
+import { newToken, tokenHash } from './db.mjs'
 import {
   bootVault,
+  claimAccount,
   createSession,
-  createUser,
   deleteSession,
   deleteSnack,
-  findUserByEmail,
   getSettings,
   listSnacks,
   putSettings,
@@ -59,8 +58,14 @@ function checkRate(email) {
   }
 }
 
+function requestToken(c) {
+  const header = c.req.header('authorization') || ''
+  const bearer = header.toLowerCase().startsWith('bearer ') ? header.slice(7).trim() : ''
+  return bearer || getCookie(c, COOKIE) || ''
+}
+
 async function userFromRequest(c) {
-  const token = getCookie(c, COOKIE)
+  const token = requestToken(c)
   if (!token) return null
   return userFromTokenHash(tokenHash(token), Date.now())
 }
@@ -87,15 +92,7 @@ app.post('/api/auth/login', async (c) => {
     if (!email || !email.includes('@')) return jsonError(c, 400, 'Enter your email.')
     if (pin.length < 4) return jsonError(c, 400, 'Pick a vault PIN with at least 4 characters.')
     checkRate(email)
-    let user = await findUserByEmail(email)
-    if (!user) {
-      const id = newUserId()
-      const pin_hash = await hashPin(pin)
-      await createUser({ id, email, pin_hash, created_at: Date.now() })
-      user = { id, email }
-    } else if (!(await pinMatches(pin, user.pin_hash))) {
-      return jsonError(c, 401, 'Wrong PIN for that email.')
-    }
+    const user = await claimAccount(email, pin)
     const token = newToken()
     await createSession({
       token_hash: tokenHash(token),
@@ -103,7 +100,7 @@ app.post('/api/auth/login', async (c) => {
       expires_at: Date.now() + SESSION_MS,
     })
     setCookie(c, COOKIE, token, cookieOpts(c))
-    return c.json({ user: publicUser(user) })
+    return c.json({ user: publicUser(user), token })
   } catch (err) {
     const status = err && typeof err === 'object' && 'status' in err ? Number(err.status) : 500
     return jsonError(c, status || 500, err instanceof Error ? err.message : 'Could not open the vault.')
@@ -111,7 +108,7 @@ app.post('/api/auth/login', async (c) => {
 })
 
 app.post('/api/auth/logout', async (c) => {
-  const token = getCookie(c, COOKIE)
+  const token = requestToken(c)
   if (token) await deleteSession(tokenHash(token))
   deleteCookie(c, COOKIE, { path: '/' })
   return c.json({ ok: true })
@@ -120,7 +117,7 @@ app.post('/api/auth/logout', async (c) => {
 app.get('/api/snacks', async (c) => {
   const user = await userFromRequest(c)
   if (!user) return jsonError(c, 401, 'Log in to open your Snack Vault.')
-  return c.json({ snacks: (await listSnacks(user.id)).map(mapSnack) })
+  return c.json({ snacks: (await listSnacks(user)).map(mapSnack) })
 })
 
 app.put('/api/snacks/:id', async (c) => {

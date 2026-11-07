@@ -17,7 +17,27 @@ export type CloudSnack = {
   smartAnswers: boolean
 }
 
+const TOKEN_KEY = 'brain-snack.vaultToken'
+
+export function vaultToken(): string {
+  try {
+    return localStorage.getItem(TOKEN_KEY)?.trim() ?? ''
+  } catch {
+    return ''
+  }
+}
+
+export function setVaultToken(token: string | null) {
+  try {
+    if (token) localStorage.setItem(TOKEN_KEY, token)
+    else localStorage.removeItem(TOKEN_KEY)
+  } catch {
+    // Private mode can still use the in-memory cookie when it is available.
+  }
+}
+
 async function api<T>(path: string, init?: RequestInit): Promise<T> {
+  const token = vaultToken()
   let res: Response
   try {
     res = await fetch(path, {
@@ -25,6 +45,7 @@ async function api<T>(path: string, init?: RequestInit): Promise<T> {
       ...init,
       headers: {
         ...(init?.body ? { 'content-type': 'application/json' } : {}),
+        ...(token ? { authorization: `Bearer ${token}` } : {}),
         ...init?.headers,
       },
     })
@@ -56,15 +77,20 @@ export async function apiMe(): Promise<ApiUser | null> {
 }
 
 export async function apiLogin(email: string, pin: string): Promise<ApiUser> {
-  const data = await api<{ user: ApiUser }>('/api/auth/login', {
+  const data = await api<{ user: ApiUser; token?: string }>('/api/auth/login', {
     method: 'POST',
     body: JSON.stringify({ email, pin }),
   })
+  if (data.token) setVaultToken(data.token)
   return data.user
 }
 
 export async function apiLogout(): Promise<void> {
-  await api('/api/auth/logout', { method: 'POST' })
+  try {
+    await api('/api/auth/logout', { method: 'POST' })
+  } finally {
+    setVaultToken(null)
+  }
 }
 
 export async function apiListSnacks(): Promise<CloudSnack[]> {

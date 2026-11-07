@@ -1,5 +1,5 @@
 import { uid } from '../core/uid'
-import { apiDeleteSnack, apiListSnacks, apiPutSnack } from '../api/client'
+import { apiDeleteSnack, apiListSnacks, apiPutSnack, vaultToken } from '../api/client'
 import { accountId } from '../auth/localAccounts'
 import { toSavedSnack, type SavedSnack } from './snackRecord'
 import type { SnackDraft } from './types'
@@ -36,17 +36,13 @@ function cacheLocal(userId: string, snacks: readonly SavedSnack[]) {
   }
 }
 
-function isVaultOffline(error: unknown): boolean {
-  return error instanceof Error && /offline|not configured|Vault database/i.test(error.message)
+function cloudSession(): boolean {
+  return Boolean(vaultToken())
 }
 
 async function upsertCloud(snack: SavedSnack): Promise<void> {
-  try {
-    await apiPutSnack(snack)
-  } catch (err) {
-    if (isVaultOffline(err)) return
-    throw err
-  }
+  if (!cloudSession()) return
+  await apiPutSnack(snack)
 }
 
 export async function saveSnack(userId: string, draft: SnackDraft): Promise<string> {
@@ -85,7 +81,7 @@ export async function updateSnack(
 }
 
 export async function listSnacks(userId: string): Promise<SavedSnack[]> {
-  try {
+  if (cloudSession()) {
     const rows = await apiListSnacks()
     const snacks: SavedSnack[] = []
     for (const row of rows) {
@@ -94,40 +90,30 @@ export async function listSnacks(userId: string): Promise<SavedSnack[]> {
     }
     cacheLocal(userId, snacks)
     return snacks
-  } catch {
-    return readAllLocal(userId).sort((a, b) => b.createdAt - a.createdAt)
   }
+  return readAllLocal(userId).sort((a, b) => b.createdAt - a.createdAt)
 }
 
 export async function deleteSnack(userId: string, id: string): Promise<void> {
-  try {
-    await apiDeleteSnack(id)
-  } catch (err) {
-    if (!isVaultOffline(err)) throw err
-  }
+  if (cloudSession()) await apiDeleteSnack(id)
   cacheLocal(userId, readAllLocal(userId).filter((snack) => snack.id !== id))
 }
 
 export async function migrateLocalSnacks(userId: string, email: string): Promise<void> {
-  const legacyId = accountId(email)
-  if (legacyId === userId) return
-  const legacy = readAllLocal(legacyId)
-  if (legacy.length === 0) return
-  const existing = await listSnacks(userId)
-  if (existing.length > 0) return
-  for (const snack of legacy) {
+  if (!cloudSession()) return
+  const seen = new Set<string>()
+  const bags = [...readAllLocal(accountId(email)), ...readAllLocal(userId)]
+  for (const snack of bags) {
+    if (seen.has(snack.id)) continue
+    seen.add(snack.id)
     const next = toSavedSnack(snack.id, { ...snack, ownerId: userId })
     if (!next) continue
     try {
-      await upsertCloud(next)
+      await apiPutSnack(next)
     } catch {
-      // Keep local copy if the vault is still coming up.
+      // Keep going so one bad row does not block the rest of the vault.
     }
   }
-  cacheLocal(
-    userId,
-    legacy.map((snack) => ({ ...snack, ownerId: userId })),
-  )
 }
 
 export function snackErrorMessage(error: unknown): string {
