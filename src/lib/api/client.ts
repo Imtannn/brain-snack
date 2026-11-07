@@ -42,7 +42,7 @@ async function api<T>(path: string, init?: RequestInit): Promise<T> {
   return data as T
 }
 
-export async function apiHealth(): Promise<{ ok: boolean; db: boolean }> {
+export async function apiHealth(): Promise<{ ok: boolean; db: boolean; driver?: string }> {
   try {
     return await api('/api/health')
   } catch {

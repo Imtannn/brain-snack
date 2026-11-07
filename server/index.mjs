@@ -5,7 +5,21 @@ import { serve } from '@hono/node-server'
 import { serveStatic } from '@hono/node-server/serve-static'
 import { Hono } from 'hono'
 import { deleteCookie, getCookie, setCookie } from 'hono/cookie'
-import { getPool, hashPin, migrate, newToken, newUserId, pinMatches, requireDb, tokenHash } from './db.mjs'
+import { hashPin, newToken, newUserId, pinMatches, tokenHash } from './db.mjs'
+import {
+  bootVault,
+  createSession,
+  createUser,
+  deleteSession,
+  deleteSnack,
+  findUserByEmail,
+  getSettings,
+  listSnacks,
+  putSettings,
+  upsertSnack,
+  userFromTokenHash,
+  vaultHealth,
+} from './vault.mjs'
 
 const rootDir = join(dirname(fileURLToPath(import.meta.url)), '..')
 const distDir = join(rootDir, 'dist')
@@ -48,29 +62,14 @@ function checkRate(email) {
 async function userFromRequest(c) {
   const token = getCookie(c, COOKIE)
   if (!token) return null
-  const db = getPool()
-  if (!db) return null
-  const { rows } = await db.query(
-    'select u.id, u.email from sessions s join users u on u.id = s.user_id where s.token_hash = $1 and s.expires_at > $2',
-    [tokenHash(token), Date.now()],
-  )
-  return rows[0] ? { id: rows[0].id, email: rows[0].email } : null
+  return userFromTokenHash(tokenHash(token), Date.now())
 }
 
 function publicUser(row) {
   return { uid: row.id, email: row.email, displayName: null, photoURL: null }
 }
 
-app.get('/api/health', async (c) => {
-  const db = getPool()
-  if (!db) return c.json({ ok: true, db: false })
-  try {
-    await db.query('select 1')
-    return c.json({ ok: true, db: true })
-  } catch {
-    return c.json({ ok: true, db: false })
-  }
-})
+app.get('/api/health', async (c) => c.json(await vaultHealth()))
 
 app.get('/api/auth/me', async (c) => {
   const user = await userFromRequest(c)
@@ -88,28 +87,21 @@ app.post('/api/auth/login', async (c) => {
     if (!email || !email.includes('@')) return jsonError(c, 400, 'Enter your email.')
     if (pin.length < 4) return jsonError(c, 400, 'Pick a vault PIN with at least 4 characters.')
     checkRate(email)
-    const db = requireDb()
-    const found = await db.query('select id, email, pin_hash from users where email = $1', [email])
-    let user = found.rows[0]
+    let user = await findUserByEmail(email)
     if (!user) {
       const id = newUserId()
       const pin_hash = await hashPin(pin)
-      await db.query('insert into users (id, email, pin_hash, created_at) values ($1, $2, $3, $4)', [
-        id,
-        email,
-        pin_hash,
-        Date.now(),
-      ])
+      await createUser({ id, email, pin_hash, created_at: Date.now() })
       user = { id, email }
     } else if (!(await pinMatches(pin, user.pin_hash))) {
       return jsonError(c, 401, 'Wrong PIN for that email.')
     }
     const token = newToken()
-    await db.query('insert into sessions (token_hash, user_id, expires_at) values ($1, $2, $3)', [
-      tokenHash(token),
-      user.id,
-      Date.now() + SESSION_MS,
-    ])
+    await createSession({
+      token_hash: tokenHash(token),
+      user_id: user.id,
+      expires_at: Date.now() + SESSION_MS,
+    })
     setCookie(c, COOKIE, token, cookieOpts(c))
     return c.json({ user: publicUser(user) })
   } catch (err) {
@@ -120,10 +112,7 @@ app.post('/api/auth/login', async (c) => {
 
 app.post('/api/auth/logout', async (c) => {
   const token = getCookie(c, COOKIE)
-  const db = getPool()
-  if (token && db) {
-    await db.query('delete from sessions where token_hash = $1', [tokenHash(token)])
-  }
+  if (token) await deleteSession(tokenHash(token))
   deleteCookie(c, COOKIE, { path: '/' })
   return c.json({ ok: true })
 })
@@ -131,12 +120,7 @@ app.post('/api/auth/logout', async (c) => {
 app.get('/api/snacks', async (c) => {
   const user = await userFromRequest(c)
   if (!user) return jsonError(c, 401, 'Log in to open your Snack Vault.')
-  const db = requireDb()
-  const { rows } = await db.query(
-    'select id, owner_id, title, raw_text, seconds, created_at, questions, model, smart_answers from snacks where owner_id = $1 order by created_at desc',
-    [user.id],
-  )
-  return c.json({ snacks: rows.map(mapSnack) })
+  return c.json({ snacks: (await listSnacks(user.id)).map(mapSnack) })
 })
 
 app.put('/api/snacks/:id', async (c) => {
@@ -146,47 +130,31 @@ app.put('/api/snacks/:id', async (c) => {
   const body = await c.req.json().catch(() => ({}))
   const snack = parseSnack(id, user.id, body)
   if (!snack) return jsonError(c, 400, 'Could not save that snack.')
-  const db = requireDb()
-  await db.query(
-    `insert into snacks (id, owner_id, title, raw_text, seconds, created_at, questions, model, smart_answers)
-     values ($1, $2, $3, $4, $5, $6, $7::jsonb, $8, $9)
-     on conflict (id) do update set
-       title = excluded.title,
-       raw_text = excluded.raw_text,
-       seconds = excluded.seconds,
-       questions = excluded.questions,
-       model = excluded.model,
-       smart_answers = excluded.smart_answers
-     where snacks.owner_id = $2`,
-    [
-      snack.id,
-      user.id,
-      snack.title,
-      snack.rawText,
-      snack.seconds,
-      snack.createdAt,
-      JSON.stringify(snack.questions),
-      snack.model,
-      snack.smartAnswers,
-    ],
-  )
+  await upsertSnack({
+    id: snack.id,
+    owner_id: user.id,
+    title: snack.title,
+    raw_text: snack.rawText,
+    seconds: snack.seconds,
+    created_at: snack.createdAt,
+    questions: snack.questions,
+    model: snack.model,
+    smart_answers: snack.smartAnswers,
+  })
   return c.json({ snack })
 })
 
 app.delete('/api/snacks/:id', async (c) => {
   const user = await userFromRequest(c)
   if (!user) return jsonError(c, 401, 'Log in to delete a snack.')
-  const db = requireDb()
-  await db.query('delete from snacks where id = $1 and owner_id = $2', [c.req.param('id'), user.id])
+  await deleteSnack(user.id, c.req.param('id'))
   return c.json({ ok: true })
 })
 
 app.get('/api/settings', async (c) => {
   const user = await userFromRequest(c)
   if (!user) return jsonError(c, 401, 'Log in to load Brainy.')
-  const db = requireDb()
-  const { rows } = await db.query('select gemini_key_enc, gemini_key_iv from settings where owner_id = $1', [user.id])
-  const row = rows[0]
+  const row = await getSettings(user.id)
   return c.json({
     geminiKeyEnc: row?.gemini_key_enc || '',
     geminiKeyIv: row?.gemini_key_iv || '',
@@ -197,16 +165,12 @@ app.put('/api/settings', async (c) => {
   const user = await userFromRequest(c)
   if (!user) return jsonError(c, 401, 'Log in to save Brainy.')
   const body = await c.req.json().catch(() => ({}))
-  const db = requireDb()
-  await db.query(
-    `insert into settings (owner_id, gemini_key_enc, gemini_key_iv, updated_at)
-     values ($1, $2, $3, $4)
-     on conflict (owner_id) do update set
-       gemini_key_enc = excluded.gemini_key_enc,
-       gemini_key_iv = excluded.gemini_key_iv,
-       updated_at = excluded.updated_at`,
-    [user.id, String(body.geminiKeyEnc || ''), String(body.geminiKeyIv || ''), Date.now()],
-  )
+  await putSettings({
+    owner_id: user.id,
+    gemini_key_enc: String(body.geminiKeyEnc || ''),
+    gemini_key_iv: String(body.geminiKeyIv || ''),
+    updated_at: Date.now(),
+  })
   return c.json({ ok: true })
 })
 
@@ -247,11 +211,8 @@ if (existsSync(distDir)) {
 }
 
 const port = Number(process.env.PORT || 8787)
-
-await migrate().catch((err) => {
-  console.error('Vault migrate failed:', err)
-})
+const boot = await bootVault()
 
 serve({ fetch: app.fetch, port, hostname: '0.0.0.0' }, () => {
-  console.log(`Brain Snack vault on :${port}${getPool() ? ' (postgres ready)' : ' (no DATABASE_URL yet)'}`)
+  console.log(`Brain Snack vault on :${port} (${boot.driver})`)
 })

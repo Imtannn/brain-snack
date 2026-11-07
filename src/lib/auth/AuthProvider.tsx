@@ -55,8 +55,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     void (async () => {
       const health = await apiHealth()
       if (!active) return
-      setVaultReady(health.db)
-      if (!health.ok && !health.db) {
+      setVaultReady(health.ok)
+      if (!health.ok) {
         setReady(true)
         return
       }

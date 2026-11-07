@@ -39,13 +39,11 @@ export function LoginModal({ open, onClose }: { open: boolean; onClose: () => vo
       <form onSubmit={(event) => void onSend(event)}>
         <Stack gap="4">
           <p className="auth-sub">
-            Same email and vault PIN on every device. Your snack sets live in your Brain Snack database, not in this
-            browser.
+            Same email and vault PIN on every device. That pair unlocks your saved snack sets wherever you crunch.
           </p>
           {!vaultReady ? (
             <p className="auth-error" role="alert">
-              Vault database is not connected yet. Add PostgreSQL on Railway (DATABASE_URL). Locally run npm run
-              dev:server with DATABASE_URL.
+              The vault is still starting. Wait a moment, then try again.
             </p>
           ) : null}
           <TextField
