@@ -115,29 +115,6 @@ export async function claimAccount(email, pin) {
   })
 }
 
-export async function findUserByEmail(email) {
-  if (usePostgres()) {
-    const { rows } = await getPool().query('select id, email, pin_hash from users where email = $1', [email])
-    return rows[0] || null
-  }
-  return withFile((data) => data.users.find((user) => user.email === email) || null)
-}
-
-export async function createUser(user) {
-  if (usePostgres()) {
-    await getPool().query('insert into users (id, email, pin_hash, created_at) values ($1, $2, $3, $4)', [
-      user.id,
-      user.email,
-      user.pin_hash,
-      user.created_at,
-    ])
-    return
-  }
-  await withFile((data) => {
-    data.users.push(user)
-  })
-}
-
 export async function userFromTokenHash(hash, now) {
   if (usePostgres()) {
     const { rows } = await getPool().query(

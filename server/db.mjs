@@ -8,7 +8,7 @@ const { Pool } = pg
 /** @type {import('pg').Pool | null} */
 let pool = null
 
-export function databaseUrl() {
+function databaseUrl() {
   return process.env.DATABASE_URL?.trim() || ''
 }
 
@@ -62,14 +62,6 @@ export async function migrate() {
       updated_at bigint not null
     );
   `)
-}
-
-export function requireDb() {
-  const db = getPool()
-  if (!db) {
-    throw new Error('Vault database is not configured. Add PostgreSQL on Railway so DATABASE_URL is set.')
-  }
-  return db
 }
 
 export async function hashPin(pin) {

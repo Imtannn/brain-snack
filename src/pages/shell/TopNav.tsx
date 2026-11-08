@@ -18,7 +18,7 @@ export function TopNav({
 }) {
   const { theme, toggleTheme } = useTheme()
   const { lang, setLang } = useSpeechLang()
-  const { user, ready, signOutUser } = useAuth()
+  const { user, signOutUser } = useAuth()
   const { key, setKey } = useGeminiKey()
   const [loginOpen, setLoginOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
@@ -26,7 +26,7 @@ export function TopNav({
   const menuRef = useRef<HTMLDivElement>(null)
   const next = theme === 'dark' ? 'Cream Foam' : 'Midnight'
   const isLight = theme === 'light'
-  const name = user?.displayName || user?.email || 'Signed in'
+  const name = user?.email || 'Signed in'
 
   useEffect(() => {
     if (!menuOpen) return
@@ -108,25 +108,23 @@ export function TopNav({
         </div>
 
         <div className="top-nav__auth">
-          {!ready ? <span className="vocab-account__wait">Checking sign-in</span> : null}
-
-          {ready && !user ? (
+          {!user ? (
             <Button size="sm" variant="quiet" className="btn-pop top-nav__login" onClick={() => setLoginOpen(true)}>
               Log in
             </Button>
-          ) : null}
-
-          {ready && user ? (
+          ) : (
             <div className="top-nav__account" ref={menuRef}>
               <button
                 type="button"
                 className="top-nav__account-btn"
                 aria-expanded={menuOpen}
                 aria-haspopup="menu"
+                aria-label={name}
                 onClick={() => setMenuOpen((open) => !open)}
               >
                 <span className="top-nav__account-name" title={name}>
-                  {name}
+                  <span className="top-nav__account-name-full">{name}</span>
+                  <span className="top-nav__account-name-short">Account</span>
                 </span>
               </button>
               {menuOpen ? (
@@ -151,7 +149,7 @@ export function TopNav({
                 </Menu>
               ) : null}
             </div>
-          ) : null}
+          )}
         </div>
       </div>
 
@@ -164,10 +162,4 @@ export function TopNav({
       />
     </header>
   )
-}
-
-export function AuthErrorBanner() {
-  const { error } = useAuth()
-  if (!error) return null
-  return <p className="vocab-auth-error top-nav__error" role="alert">{error}</p>
 }

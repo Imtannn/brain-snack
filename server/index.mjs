@@ -71,7 +71,7 @@ async function userFromRequest(c) {
 }
 
 function publicUser(row) {
-  return { uid: row.id, email: row.email, displayName: null, photoURL: null }
+  return { uid: row.id, email: row.email }
 }
 
 app.get('/api/health', async (c) => c.json(await vaultHealth()))

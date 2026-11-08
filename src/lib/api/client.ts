@@ -1,20 +1,6 @@
 export type ApiUser = {
   uid: string
   email: string | null
-  displayName: string | null
-  photoURL: string | null
-}
-
-export type CloudSnack = {
-  id: string
-  ownerId: string
-  title: string
-  rawText: string
-  seconds: number
-  createdAt: number
-  questions: unknown
-  model: string | null
-  smartAnswers: boolean
 }
 
 const TOKEN_KEY = 'brain-snack.vaultToken'
@@ -32,7 +18,7 @@ export function setVaultToken(token: string | null) {
     if (token) localStorage.setItem(TOKEN_KEY, token)
     else localStorage.removeItem(TOKEN_KEY)
   } catch {
-    // Private mode can still use the in-memory cookie when it is available.
+    // Private mode can still use the cookie when it is available.
   }
 }
 
@@ -50,7 +36,7 @@ async function api<T>(path: string, init?: RequestInit): Promise<T> {
       },
     })
   } catch {
-    throw new Error('Vault server is offline. On Railway this is automatic. Locally run npm run dev:server.')
+    throw new Error('Could not reach the vault. Try again in a moment.')
   }
   const data: unknown = await res.json().catch(() => ({}))
   if (!res.ok) {
@@ -61,14 +47,6 @@ async function api<T>(path: string, init?: RequestInit): Promise<T> {
     throw new Error(message)
   }
   return data as T
-}
-
-export async function apiHealth(): Promise<{ ok: boolean; db: boolean; driver?: string }> {
-  try {
-    return await api('/api/health')
-  } catch {
-    return { ok: false, db: false }
-  }
 }
 
 export async function apiMe(): Promise<ApiUser | null> {
@@ -93,7 +71,7 @@ export async function apiLogout(): Promise<void> {
   }
 }
 
-export async function apiListSnacks(): Promise<CloudSnack[]> {
+export async function apiListSnacks() {
   const data = await api<{ snacks: CloudSnack[] }>('/api/snacks')
   return data.snacks
 }
@@ -115,4 +93,16 @@ export async function apiLoadSettings(): Promise<{ geminiKeyEnc: string; geminiK
 
 export async function apiSaveSettings(packed: { geminiKeyEnc: string; geminiKeyIv: string }): Promise<void> {
   await api('/api/settings', { method: 'PUT', body: JSON.stringify(packed) })
+}
+
+export type CloudSnack = {
+  id: string
+  ownerId: string
+  title: string
+  rawText: string
+  seconds: number
+  createdAt: number
+  questions: unknown
+  model: string | null
+  smartAnswers: boolean
 }

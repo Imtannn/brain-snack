@@ -3,7 +3,7 @@ import { Button, Modal, Stack, TextField } from '@shared/ui'
 import { useAuth } from '../../lib/auth/AuthProvider'
 
 export function LoginModal({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const { user, vaultReady, signIn } = useAuth()
+  const { user, signIn } = useAuth()
   const [email, setEmail] = useState('')
   const [pin, setPin] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -28,24 +28,17 @@ export function LoginModal({ open, onClose }: { open: boolean; onClose: () => vo
     try {
       await signIn(email.trim().toLowerCase(), pin.trim())
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not open the vault')
+      setError(err instanceof Error ? err.message : 'Could not log in')
     } finally {
       setBusy(false)
     }
   }
 
   return (
-    <Modal open={open} title="Log in" onClose={onClose} className="auth-modal">
+    <Modal open={open} title="Log in" onClose={onClose}>
       <form onSubmit={(event) => void onSend(event)}>
         <Stack gap="4">
-          <p className="auth-sub">
-            Same email and vault PIN on every device. That pair unlocks your saved snack sets wherever you crunch.
-          </p>
-          {!vaultReady ? (
-            <p className="auth-error" role="alert">
-              The vault is still starting. Wait a moment, then try again.
-            </p>
-          ) : null}
+          <p className="auth-sub">Same email and PIN on every device. Your snacks stay in one vault.</p>
           <TextField
             label="Email"
             type="email"
@@ -55,18 +48,18 @@ export function LoginModal({ open, onClose }: { open: boolean; onClose: () => vo
             onChange={(event) => setEmail(event.target.value)}
           />
           <TextField
-            label="Vault PIN"
+            label="PIN"
             type="password"
             autoComplete="current-password"
             required
             minLength={4}
             value={pin}
-            hint="At least 4 characters. First visit creates the vault; later visits unlock it."
+            hint="At least 4 characters. A new email creates your vault."
             onChange={(event) => setPin(event.target.value)}
           />
           {error ? <p className="auth-error" role="alert">{error}</p> : null}
-          <Button type="submit" block className="btn-pop" disabled={busy || !vaultReady}>
-            {busy ? 'Opening…' : 'Open Snack Vault'}
+          <Button type="submit" block className="btn-pop" disabled={busy}>
+            {busy ? 'Logging in…' : 'Log in'}
           </Button>
         </Stack>
       </form>

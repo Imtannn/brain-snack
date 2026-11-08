@@ -16,22 +16,32 @@ export function SavedSnacks({
 
   useEffect(() => {
     let active = true
-    setLoading(true)
-    listSnacks(uid)
-      .then((next) => {
+
+    async function load(showLoading: boolean) {
+      if (showLoading) setLoading(true)
+      try {
+        const next = await listSnacks(uid)
         if (!active) return
         setSnacks(next)
         setError('')
-      })
-      .catch((err: unknown) => {
+      } catch (err: unknown) {
         if (!active) return
         setError(snackErrorMessage(err))
-      })
-      .finally(() => {
-        if (active) setLoading(false)
-      })
+      } finally {
+        if (active && showLoading) setLoading(false)
+      }
+    }
+
+    void load(true)
+    const refresh = () => {
+      if (document.visibilityState === 'visible') void load(false)
+    }
+    window.addEventListener('focus', refresh)
+    document.addEventListener('visibilitychange', refresh)
     return () => {
       active = false
+      window.removeEventListener('focus', refresh)
+      document.removeEventListener('visibilitychange', refresh)
     }
   }, [uid])
 

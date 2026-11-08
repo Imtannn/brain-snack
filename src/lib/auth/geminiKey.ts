@@ -1,6 +1,6 @@
 import { accountId } from './localAccounts'
 import { decryptSecret, encryptSecret } from './secretBox'
-import { apiLoadSettings, apiSaveSettings } from '../api/client'
+import { apiLoadSettings, apiSaveSettings, vaultToken } from '../api/client'
 
 const STORAGE_PREFIX = 'brain-snack.geminiKey.'
 
@@ -25,6 +25,7 @@ export function clearGeminiKey(uid: string): void {
 }
 
 export async function loadGeminiKey(uid: string): Promise<string> {
+  if (!vaultToken()) return readGeminiKey(uid)
   try {
     const remote = await apiLoadSettings()
     const iv = remote.geminiKeyIv
@@ -49,6 +50,7 @@ export async function saveGeminiKey(uid: string, key: string): Promise<void> {
   const trimmed = key.trim()
   if (trimmed) writeGeminiKey(uid, trimmed)
   else clearGeminiKey(uid)
+  if (!vaultToken()) return
   try {
     if (!trimmed) {
       await apiSaveSettings({ geminiKeyIv: '', geminiKeyEnc: '' })

@@ -18,7 +18,7 @@ export function HomeDashboard({
   const [settingsOpen, setSettingsOpen] = useState(false)
   if (!user) return null
 
-  const greeting = user.displayName || user.email || 'there'
+  const greeting = user.email || 'there'
 
   return (
     <div className="home-dash vocab-wrap">

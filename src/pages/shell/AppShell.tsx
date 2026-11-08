@@ -3,7 +3,7 @@ import { useAuth } from '../../lib/auth/AuthProvider'
 import type { SavedSnack } from '../../lib/snacks/snackRecord'
 import { HomeDashboard } from '../home/HomeDashboard'
 import { VocabularyPage } from '../vocabulary/VocabularyPage'
-import { AuthErrorBanner, TopNav } from './TopNav'
+import { TopNav } from './TopNav'
 
 type Screen = 'home' | 'session'
 
@@ -49,7 +49,6 @@ export function AppShell() {
   return (
     <div className="app-shell">
       <TopNav showHome={showHome} onHome={goHome} />
-      <AuthErrorBanner />
       <div className="app-shell__body">
         {screen === 'home' && user ? (
           <HomeDashboard onNewSnack={openNewSnack} onRestudy={openRestudy} />
