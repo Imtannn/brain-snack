@@ -1,81 +1,52 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const putSnack = vi.fn()
+const listSnacks = vi.fn()
 
 vi.mock('../../api/client', () => ({
   vaultToken: () => 'tok',
   apiPutSnack: (...args: unknown[]) => putSnack(...args),
-  apiListSnacks: async () => [],
+  apiListSnacks: () => listSnacks(),
   apiDeleteSnack: async () => {},
 }))
 
 import { migrateLocalSnacks } from '../store'
 
+function snackRow(id: string, title: string, ownerId: string) {
+  return {
+    id,
+    ownerId,
+    title,
+    rawText: 'bonjour: hello',
+    seconds: 12,
+    createdAt: 1,
+    questions: [],
+    model: null,
+    smartAnswers: false,
+  }
+}
+
 describe('migrateLocalSnacks', () => {
   beforeEach(() => {
     localStorage.clear()
     putSnack.mockReset()
+    listSnacks.mockReset()
+    listSnacks.mockResolvedValue([] as { id: string }[])
   })
 
-  it('uploads leftovers from the old email bag only', async () => {
-    localStorage.setItem(
-      'brain-snack.snacks.user-a@b.c',
-      JSON.stringify([
-        {
-          id: 'snack-legacy',
-          ownerId: 'user-a@b.c',
-          title: 'Old notes',
-          rawText: 'bonjour: hello',
-          seconds: 12,
-          createdAt: 1,
-          questions: [],
-          model: null,
-          smartAnswers: false,
-        },
-      ]),
-    )
-    localStorage.setItem(
-      'brain-snack.snacks.uid-1',
-      JSON.stringify([
-        {
-          id: 'snack-cloud',
-          ownerId: 'uid-1',
-          title: 'Huge FR review',
-          rawText: 'x',
-          seconds: 12,
-          createdAt: 2,
-          questions: Array.from({ length: 20 }, (_, i) => ({ prompt: `q${i}`, answer: `a${i}` })),
-          model: 'gemini',
-          smartAnswers: false,
-        },
-      ]),
-    )
-
-    await migrateLocalSnacks('uid-1', 'a@b.c')
-
-    expect(putSnack).toHaveBeenCalledTimes(1)
-    expect(putSnack.mock.calls[0]?.[0]?.id).toBe('snack-legacy')
-    expect(putSnack.mock.calls[0]?.[0]?.ownerId).toBe('uid-1')
-  })
-
-  it('skips when there is no leftover email bag', async () => {
-    localStorage.setItem(
-      'brain-snack.snacks.uid-1',
-      JSON.stringify([
-        {
-          id: 'snack-cloud',
-          ownerId: 'uid-1',
-          title: 'Vault cache',
-          rawText: 'x',
-          seconds: 12,
-          createdAt: 2,
-          questions: [],
-          model: null,
-          smartAnswers: false,
-        },
-      ]),
-    )
+  it('does not re-upload when the vault already has snacks', async () => {
+    listSnacks.mockResolvedValue([snackRow('already', 'Live', 'uid-1')])
+    localStorage.setItem('brain-snack.snacks.user-a@b.c', JSON.stringify([snackRow('snack-legacy', 'Old notes', 'user-a@b.c')]))
+    localStorage.setItem('brain-snack.snacks.uid-1', JSON.stringify([snackRow('snack-cloud', 'Vault cache', 'uid-1')]))
     await migrateLocalSnacks('uid-1', 'a@b.c')
     expect(putSnack).not.toHaveBeenCalled()
+  })
+
+  it('restores local leftovers only when the vault is empty', async () => {
+    localStorage.setItem('brain-snack.snacks.user-a@b.c', JSON.stringify([snackRow('snack-legacy', 'Old notes', 'user-a@b.c')]))
+    localStorage.setItem('brain-snack.snacks.uid-1', JSON.stringify([snackRow('snack-cloud', 'Vault cache', 'uid-1')]))
+    await migrateLocalSnacks('uid-1', 'a@b.c')
+    expect(putSnack.mock.calls.map((call) => call[0]?.id).sort()).toEqual(['snack-cloud', 'snack-legacy'])
+    expect(putSnack.mock.calls.every((call) => call[0]?.ownerId === 'uid-1')).toBe(true)
   })
 })

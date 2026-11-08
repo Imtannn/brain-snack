@@ -4,6 +4,7 @@ import {
   PASTE_HINT,
   PASTE_PLACEHOLDER,
 } from '../../lib/vocabulary/constants'
+import { isSpeechLang, SPEECH_LANGS, type SpeechLang } from '../../lib/speech/speechLang'
 import { Button, Stack, Switch, TextArea, TextField } from '@shared/ui'
 
 const SAMPLE_SNACK = [
@@ -37,6 +38,8 @@ export function VocabularyInput({
   saving = false,
   saved = false,
   saveError = '',
+  speechLang,
+  onSpeechLang,
 }: {
   paste: string
   secondsText: string
@@ -59,6 +62,8 @@ export function VocabularyInput({
   saving?: boolean
   saved?: boolean
   saveError?: string
+  speechLang: SpeechLang
+  onSpeechLang: (lang: SpeechLang) => void
 }) {
   return (
     <form
@@ -76,7 +81,10 @@ export function VocabularyInput({
           <button
             type="button"
             className="vocab-quick-btn"
-            onClick={() => onPaste(SAMPLE_SNACK)}
+            onClick={() => {
+              onPaste(SAMPLE_SNACK)
+              onSpeechLang('fr-FR')
+            }}
             disabled={busy}
           >
             ⚡️ Load sample snack bite
@@ -94,9 +102,31 @@ export function VocabularyInput({
           onChange={(event) => onPaste(event.target.value)}
         />
 
-        <div className="vocab-sample-row" style={{ marginTop: 'var(--space-2)' }}>
+        <label className="ds-field vocab-lang-field">
+          <span className="ds-field__label">This list is in</span>
+          <span className="ds-field__box">
+            <select
+              aria-label="This list is in"
+              className="ds-field__control"
+              value={speechLang}
+              disabled={busy}
+              onChange={(event) => {
+                const next = event.target.value
+                if (isSpeechLang(next)) onSpeechLang(next)
+              }}
+            >
+              {SPEECH_LANGS.map((item) => (
+                <option key={item.id} value={item.id}>
+                  {item.label}
+                </option>
+              ))}
+            </select>
+          </span>
+        </label>
+
+        <div className="vocab-sample-row">
           <h5 className="vocab-section-heading">Crunch Timer</h5>
-          <div style={{ display: 'flex', gap: '6px' }}>
+          <div className="vocab-timer-presets">
             <button type="button" className="vocab-quick-btn" onClick={() => onSeconds('8')} disabled={busy}>
               8s (Speed)
             </button>

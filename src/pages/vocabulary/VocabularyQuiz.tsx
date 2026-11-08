@@ -4,7 +4,6 @@ import { CHOICE_KEYS, TIMER_TICK_MS } from '../../lib/vocabulary/constants'
 import { advance, expireQuestion, remainingMs, selectChoice, startSession } from '../../lib/vocabulary/session'
 import type { AnswerRecord, QuizQuestion, QuizSessionState, RevealReason } from '../../lib/vocabulary/types'
 import { Button, type ButtonVariant, ProgressBar, Stack, Surface } from '@shared/ui'
-import { useSpeechLang } from '../../lib/speech/SpeechLangProvider'
 import { HearButton } from './HearButton'
 import { MarkdownText } from './MarkdownText'
 import { TutorPanel } from './TutorPanel'
@@ -15,14 +14,15 @@ export function VocabularyQuiz({
   onFinish,
   tutor = null,
   modelNotice = '',
+  lang,
 }: {
   questions: readonly QuizQuestion[]
   seconds: number
   onFinish: (answers: readonly AnswerRecord[]) => void
   tutor?: { apiKey: string } | null
   modelNotice?: string
+  lang: string
 }) {
-  const { lang } = useSpeechLang()
   const [session, setSession] = useState<QuizSessionState>(() =>
     startSession(questions, seconds * 1000, perfNow()),
   )
@@ -128,6 +128,7 @@ export function VocabularyQuiz({
           question={question}
           reason={session.revealReason}
           selectedLabel={session.answers.at(-1)?.selectedLabel ?? null}
+          lang={lang}
         />
       ) : null}
 

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import type { AuthUser } from '../../lib/auth/AuthProvider'
 import { saveSnack, snackErrorMessage, updateSnack } from '../../lib/snacks/store'
 import { snackTitle, type SavedSnack } from '../../lib/snacks/snackRecord'
+import { useSpeechLang } from '../../lib/speech/SpeechLangProvider'
 import { clampQuizSeconds } from '../../lib/vocabulary/quiz'
 import type { QuizQuestion } from '../../lib/vocabulary/types'
 import type { VocabPhase } from './quizPhase'
@@ -45,6 +46,7 @@ export function useSnackSave({
   const [attachQuestions, setAttachQuestions] = useState(
     Boolean(restudySnack && restudySnack.questions.length === 0),
   )
+  const { lang } = useSpeechLang()
 
   function rememberQuestions(questions: readonly QuizQuestion[], model: string | null) {
     if (!user || !savedId || !attachQuestions || questions.length === 0) return
@@ -95,6 +97,7 @@ export function useSnackSave({
         questions: [],
         model: null,
         smartAnswers: Boolean(canUseSmartAnswers && smartAnswers),
+        speechLang: lang,
       })
       setSavedId(id)
       setAttachQuestions(true)
@@ -125,6 +128,7 @@ export function useSnackSave({
         questions: phase.questions,
         model: phase.model,
         smartAnswers: false,
+        speechLang: lang,
       })
       setSaved(true)
     } catch (err) {

@@ -137,6 +137,7 @@ app.put('/api/snacks/:id', async (c) => {
     questions: snack.questions,
     model: snack.model,
     smart_answers: snack.smartAnswers,
+    speech_lang: snack.speechLang,
   })
   return c.json({ snack })
 })
@@ -182,6 +183,7 @@ function mapSnack(row) {
     questions: row.questions || [],
     model: row.model,
     smartAnswers: row.smart_answers === true,
+    speechLang: row.speech_lang || undefined,
   }
 }
 
@@ -199,7 +201,13 @@ function parseSnack(id, ownerId, body) {
     questions: Array.isArray(body.questions) ? body.questions : [],
     model: typeof body.model === 'string' ? body.model : null,
     smartAnswers: body.smartAnswers === true,
+    speechLang: parseSpeechLang(body.speechLang),
   }
+}
+
+function parseSpeechLang(value) {
+  const lang = String(value || '').trim()
+  return /^[a-z]{2}-[A-Z]{2}$/.test(lang) ? lang : ''
 }
 
 app.all('/api/*', (c) => jsonError(c, 404, 'Not found'))

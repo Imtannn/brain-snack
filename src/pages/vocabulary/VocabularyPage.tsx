@@ -6,6 +6,7 @@ import { modelNotice } from '../../lib/gemini/client'
 import type { QuizQuestion } from '../../lib/vocabulary/types'
 import { snackTitle } from '../../lib/snacks/snackRecord'
 import type { SavedSnack } from '../../lib/snacks/snackRecord'
+import { useSpeechLang } from '../../lib/speech/SpeechLangProvider'
 import { VocabChrome } from './VocabChrome'
 import { VocabularyInput } from './VocabularyInput'
 import { VocabularyQuiz } from './VocabularyQuiz'
@@ -21,6 +22,7 @@ export function VocabularyPage({
 } = {}) {
   const { user } = useAuth()
   const { key: geminiKey } = useGeminiKey()
+  const { lang, setLang } = useSpeechLang()
   const canUseSmartAnswers = Boolean(user && geminiKey)
   const rememberRef = useRef<(questions: readonly QuizQuestion[], model: string | null) => void>(() => {})
   const readyRef = useRef<() => void>(() => {})
@@ -87,6 +89,8 @@ export function VocabularyPage({
               quiz.setSecondsText(value)
               quiz.setError('')
             }}
+            speechLang={lang}
+            onSpeechLang={setLang}
             onProceed={quiz.startQuiz}
           />
         </>
@@ -107,6 +111,7 @@ export function VocabularyPage({
             key={phase.runId}
             questions={phase.questions}
             seconds={phase.seconds}
+            lang={lang}
             modelNotice={phase.pro && phase.model ? modelNotice() : ''}
             tutor={phase.pro && geminiKey ? { apiKey: geminiKey } : null}
             onFinish={(answers) => {

@@ -1,14 +1,17 @@
+import { studyLanguageLine } from '../speech/langContext'
 import type { QuizQuestion } from '../vocabulary/types'
 import { generateContent, type GeminiReply } from './client'
 import { questionsFromModelText } from './schema'
 
-export function quizPrompt(rawText: string): string {
+export function quizPrompt(rawText: string, lang = 'en-US'): string {
   return `You are Brainy, a flexible study coach. The learner pasted free-form text that may be:
 - a clean vocabulary list (word: meaning, or two-line pairs)
 - messy study notes or article text
 - just a short topic prompt like "French café words"
 
-Figure out what they gave you. Extract the most useful learning points. Prefer foreign word → English meaning when language learning is clear; otherwise use key terms or facts as question → answer. If they only gave a topic with no list, invent a practical beginner-friendly set for that topic.
+${studyLanguageLine(lang)} Prefer foreign word → English meaning for this language; otherwise use key terms or facts as question → answer. If they only gave a topic with no list, invent a practical beginner-friendly set in this language.
+
+Figure out what they gave you. Extract the most useful learning points.
 
 Source text:
 """
@@ -29,10 +32,11 @@ Rules:
 export async function generateQuizFromNotes(
   apiKey: string,
   rawText: string,
+  lang = 'en-US',
 ): Promise<GeminiReply & { questions: QuizQuestion[] }> {
   const reply = await generateContent(
     apiKey,
-    [{ role: 'user', parts: [{ text: quizPrompt(rawText) }] }],
+    [{ role: 'user', parts: [{ text: quizPrompt(rawText, lang) }] }],
     { json: true },
   )
   return { ...reply, questions: questionsFromModelText(reply.text) }

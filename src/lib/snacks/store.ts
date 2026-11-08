@@ -55,6 +55,7 @@ export async function saveSnack(userId: string, draft: SnackDraft): Promise<stri
     questions: draft.questions,
     model: draft.model,
     smartAnswers: draft.smartAnswers === true,
+    speechLang: draft.speechLang,
     createdAt: Date.now(),
   })
   if (!snack) throw new Error('Could not save that snack.')
@@ -66,7 +67,7 @@ export async function saveSnack(userId: string, draft: SnackDraft): Promise<stri
 export async function updateSnack(
   userId: string,
   id: string,
-  patch: Partial<Pick<SavedSnack, 'questions' | 'model' | 'smartAnswers' | 'rawText' | 'seconds' | 'title'>>,
+  patch: Partial<Pick<SavedSnack, 'questions' | 'model' | 'smartAnswers' | 'rawText' | 'seconds' | 'title' | 'speechLang'>>,
 ): Promise<void> {
   const listed = await listSnacks(userId)
   const current = listed.find((snack) => snack.id === id)
@@ -99,13 +100,38 @@ export async function deleteSnack(userId: string, id: string): Promise<void> {
   cacheLocal(userId, readAllLocal(userId).filter((snack) => snack.id !== id))
 }
 
+function readEveryLocalBag(): SavedSnack[] {
+  const bags: SavedSnack[] = []
+  const seen = new Set<string>()
+  try {
+    for (let i = 0; i < localStorage.length; i += 1) {
+      const key = localStorage.key(i)
+      if (!key?.startsWith('brain-snack.snacks.')) continue
+      for (const snack of readAllLocal(key.slice('brain-snack.snacks.'.length))) {
+        if (seen.has(snack.id)) continue
+        seen.add(snack.id)
+        bags.push(snack)
+      }
+    }
+  } catch {
+    // Private mode can block storage. Cloud is the source of truth.
+  }
+  return bags
+}
+
 export async function migrateLocalSnacks(userId: string, email: string): Promise<void> {
   if (!cloudSession()) return
-  const legacyId = accountId(email)
-  if (legacyId === userId) return
-  const bags = readAllLocal(legacyId)
-  if (bags.length === 0) return
+  try {
+    const remote = await apiListSnacks()
+    if (remote.length > 0) return
+  } catch {
+    return
+  }
+  const seen = new Set<string>()
+  const bags = [...readAllLocal(accountId(email)), ...readEveryLocalBag()]
   for (const snack of bags) {
+    if (seen.has(snack.id)) continue
+    seen.add(snack.id)
     const next = toSavedSnack(snack.id, { ...snack, ownerId: userId })
     if (!next) continue
     try {

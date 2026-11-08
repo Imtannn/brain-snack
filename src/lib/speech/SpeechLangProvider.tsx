@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { primeSpeech } from './speak'
 import { readSpeechLang, writeSpeechLang, type SpeechLang } from './speechLang'
 
@@ -16,16 +16,12 @@ export function SpeechLangProvider({ children }: { children: ReactNode }) {
     primeSpeech()
   }, [])
 
-  const value = useMemo<SpeechLangValue>(
-    () => ({
-      lang,
-      setLang: (next) => {
-        setLangState(next)
-        writeSpeechLang(next)
-      },
-    }),
-    [lang],
-  )
+  const setLang = useCallback((next: SpeechLang) => {
+    setLangState(next)
+    writeSpeechLang(next)
+  }, [])
+
+  const value = useMemo<SpeechLangValue>(() => ({ lang, setLang }), [lang, setLang])
 
   return <SpeechLangContext.Provider value={value}>{children}</SpeechLangContext.Provider>
 }

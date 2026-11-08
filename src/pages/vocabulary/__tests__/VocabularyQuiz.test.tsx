@@ -50,7 +50,7 @@ describe('VocabularyQuiz', () => {
   })
 
   it('shows the correct answer and a detailed explanation when the choice is wrong', () => {
-    render(<VocabularyQuiz questions={questions} seconds={30} onFinish={() => {}} />)
+    render(<VocabularyQuiz questions={questions} seconds={30} lang="en-US" onFinish={() => {}} />)
     fireEvent.click(screen.getByRole('button', { name: /sensible and realistic/i }))
     expect(screen.getByText('Not quite')).toBeTruthy()
     expect(screen.getByText(/The English meaning is “lasting briefly”/)).toBeTruthy()
@@ -60,7 +60,7 @@ describe('VocabularyQuiz', () => {
 
   it('continues with Enter or Space once the next button is visible', () => {
     const onFinish = vi.fn()
-    render(<VocabularyQuiz questions={questions} seconds={30} onFinish={onFinish} />)
+    render(<VocabularyQuiz questions={questions} seconds={30} lang="en-US" onFinish={onFinish} />)
     fireEvent.keyDown(window, { key: 'Enter' })
     expect(screen.getByText('ephemeral')).toBeTruthy()
     expect(screen.queryByText('pragmatic')).toBeNull()
@@ -89,7 +89,7 @@ describe('VocabularyQuiz', () => {
 
   it('shows the explanation when the timer reaches zero', () => {
     vi.useFakeTimers()
-    render(<VocabularyQuiz questions={questions} seconds={3} onFinish={() => {}} />)
+    render(<VocabularyQuiz questions={questions} seconds={3} lang="en-US" onFinish={() => {}} />)
     act(() => {
       vi.advanceTimersByTime(3100)
     })

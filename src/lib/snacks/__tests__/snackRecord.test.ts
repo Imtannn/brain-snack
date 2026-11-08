@@ -38,4 +38,16 @@ describe('saved snack records', () => {
     })?.smartAnswers).toBe(true)
     expect(toSavedSnack('abc', { title: 'Missing questions', ownerId: 'user-1', questions: [] })).toBeNull()
   })
+
+  it('keeps a study language on the snack', () => {
+    expect(toSavedSnack('lang', {
+      ownerId: 'user-1',
+      title: 'Café',
+      rawText: 'que: what',
+      seconds: 15,
+      questions: [],
+      speechLang: 'fr-FR',
+    })?.speechLang).toBe('fr-FR')
+  })
 })
+

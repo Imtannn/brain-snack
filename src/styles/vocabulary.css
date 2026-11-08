@@ -262,46 +262,9 @@
   gap: var(--space-2);
 }
 
-.speech-lang {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-shrink: 0;
-  padding: 4px 10px 4px 12px;
-  border: 2px solid var(--border);
-  border-radius: var(--radius-pill);
-  background: var(--bg-subtle);
-  box-shadow: 0 3px 0 var(--border);
-  color: var(--ink);
-}
-
-.speech-lang:active {
-  transform: translateY(2px);
-  box-shadow: 0 1px 0 var(--border);
-}
-
-.speech-lang__label {
-  font-family: var(--font-display);
-  font-size: var(--text-xs);
-  font-weight: 800;
-  letter-spacing: 0.04em;
-}
-
-.speech-lang select {
-  width: 16rem;
-  border: 0;
-  margin: 0;
-  padding: 0 2px;
-  background: transparent;
-  color: inherit;
-  font-family: var(--font-display);
-  font-size: var(--text-xs);
-  font-weight: 800;
+.vocab-lang-field select.ds-field__control {
   cursor: pointer;
-}
-
-.speech-lang select:focus {
-  outline: none;
+  appearance: auto;
 }
 
 /* Theme Switcher Pill */
@@ -335,6 +298,11 @@
   align-items: center;
   justify-content: space-between;
   gap: var(--space-2);
+}
+
+.vocab-timer-presets {
+  display: flex;
+  gap: 6px;
 }
 
 .vocab-smart {
@@ -1044,10 +1012,8 @@
   }
 
   .top-nav__inner {
-    grid-template-columns: minmax(0, 1fr) max-content;
-    grid-template-areas:
-      'brand auth'
-      'tools tools';
+    grid-template-columns: minmax(0, 1fr) auto max-content;
+    grid-template-areas: 'brand tools auth';
     overflow: visible;
   }
 
@@ -1071,18 +1037,8 @@
   }
 
   .top-nav__tools {
-    justify-content: stretch;
+    justify-content: flex-end;
     min-width: 0;
-  }
-
-  .speech-lang {
-    flex: 1;
-    min-width: 0;
-  }
-
-  .speech-lang select {
-    width: 100%;
-    max-width: none;
   }
 
   .top-nav__account-btn {

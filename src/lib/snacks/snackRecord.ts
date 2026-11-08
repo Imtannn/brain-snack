@@ -1,3 +1,4 @@
+import { isSpeechLang, type SpeechLang } from '../speech/speechLang'
 import type { QuizChoice, QuizQuestion } from '../vocabulary/types'
 
 export type SavedSnack = {
@@ -10,6 +11,7 @@ export type SavedSnack = {
   questions: QuizQuestion[]
   model: string | null
   smartAnswers: boolean
+  speechLang?: SpeechLang
 }
 
 export function snackTitle(rawText: string): string {
@@ -33,9 +35,11 @@ export function toSavedSnack(id: string, data: unknown): SavedSnack | null {
   const createdAt = typeof record.createdAt === 'number' && Number.isFinite(record.createdAt) ? record.createdAt : 0
   const model = typeof record.model === 'string' ? record.model : null
   const smartAnswers = record.smartAnswers === true
+  const speechLang =
+    typeof record.speechLang === 'string' && isSpeechLang(record.speechLang) ? record.speechLang : undefined
   if (!title || !ownerId) return null
   if (questions.length === 0 && rawText.trim().length === 0) return null
-  return { id, ownerId, title, rawText, seconds, createdAt, questions, model, smartAnswers }
+  return { id, ownerId, title, rawText, seconds, createdAt, questions, model, smartAnswers, speechLang }
 }
 
 function questionsFrom(value: unknown): QuizQuestion[] {

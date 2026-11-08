@@ -171,7 +171,7 @@ export async function listSnacks(user) {
   const email = user.email
   if (usePostgres()) {
     const { rows } = await getPool().query(
-      `select s.id, s.owner_id, s.title, s.raw_text, s.seconds, s.created_at, s.questions, s.model, s.smart_answers
+      `select s.id, s.owner_id, s.title, s.raw_text, s.seconds, s.created_at, s.questions, s.model, s.smart_answers, s.speech_lang
        from snacks s
        join users u on u.id = s.owner_id
        where u.email = $1 or s.owner_id = $2
@@ -194,15 +194,16 @@ export async function listSnacks(user) {
 export async function upsertSnack(snack) {
   if (usePostgres()) {
     await getPool().query(
-      `insert into snacks (id, owner_id, title, raw_text, seconds, created_at, questions, model, smart_answers)
-       values ($1, $2, $3, $4, $5, $6, $7::jsonb, $8, $9)
+      `insert into snacks (id, owner_id, title, raw_text, seconds, created_at, questions, model, smart_answers, speech_lang)
+       values ($1, $2, $3, $4, $5, $6, $7::jsonb, $8, $9, $10)
        on conflict (id) do update set
          title = excluded.title,
          raw_text = excluded.raw_text,
          seconds = excluded.seconds,
          questions = excluded.questions,
          model = excluded.model,
-         smart_answers = excluded.smart_answers
+         smart_answers = excluded.smart_answers,
+         speech_lang = excluded.speech_lang
        where snacks.owner_id = $2`,
       [
         snack.id,
@@ -214,6 +215,7 @@ export async function upsertSnack(snack) {
         JSON.stringify(snack.questions),
         snack.model,
         snack.smart_answers,
+        snack.speech_lang || '',
       ],
     )
     return

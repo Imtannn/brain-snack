@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useAuth } from '../../lib/auth/AuthProvider'
 import type { SavedSnack } from '../../lib/snacks/snackRecord'
+import { useSpeechLang } from '../../lib/speech/SpeechLangProvider'
 import { HomeDashboard } from '../home/HomeDashboard'
 import { VocabularyPage } from '../vocabulary/VocabularyPage'
 import { TopNav } from './TopNav'
@@ -9,6 +10,7 @@ type Screen = 'home' | 'session'
 
 export function AppShell() {
   const { user, ready } = useAuth()
+  const { setLang } = useSpeechLang()
   const [screen, setScreen] = useState<Screen>(() => (user ? 'home' : 'session'))
   const [restudySnack, setRestudySnack] = useState<SavedSnack | null>(null)
   const [sessionKey, setSessionKey] = useState(0)
@@ -34,6 +36,7 @@ export function AppShell() {
   }
 
   function openRestudy(snack: SavedSnack) {
+    if (snack.speechLang) setLang(snack.speechLang)
     setRestudySnack(snack)
     setSessionKey((key) => key + 1)
     setScreen('session')

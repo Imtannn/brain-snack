@@ -139,4 +139,5 @@ export type CloudSnack = {
   questions: unknown
   model: string | null
   smartAnswers: boolean
+  speechLang?: string
 }

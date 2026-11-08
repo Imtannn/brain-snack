@@ -22,11 +22,13 @@ export function TutorPanel({
   question,
   reason,
   selectedLabel,
+  lang,
 }: {
   apiKey: string
   question: QuizQuestion
   reason: Exclude<RevealReason, 'correct'>
   selectedLabel: string | null
+  lang: string
 }) {
   const [explanation, setExplanation] = useState('')
   const [modelLine, setModelLine] = useState('')
@@ -36,12 +38,12 @@ export function TutorPanel({
   const [draft, setDraft] = useState('')
   const [sending, setSending] = useState(false)
   const [chatError, setChatError] = useState('')
-  const prompt = explanationPrompt(question, reason, selectedLabel)
+  const prompt = explanationPrompt(question, reason, selectedLabel, lang)
 
   useEffect(() => {
     const controller = new AbortController()
     setExplaining(true)
-    explainMiss(apiKey, question, reason, selectedLabel, controller.signal)
+    explainMiss(apiKey, question, reason, selectedLabel, lang, controller.signal)
       .then((reply) => {
         if (controller.signal.aborted) return
         setExplanation(reply.text)
@@ -55,7 +57,7 @@ export function TutorPanel({
         if (!controller.signal.aborted) setExplaining(false)
       })
     return () => controller.abort()
-  }, [apiKey, question, reason, selectedLabel])
+  }, [apiKey, question, reason, selectedLabel, lang])
 
   async function send() {
     const text = draft.trim()

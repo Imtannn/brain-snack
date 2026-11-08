@@ -1,3 +1,4 @@
+import type { SpeechLang } from '../speech/speechLang'
 import type { QuizQuestion } from '../vocabulary/types'
 
 export type SnackDraft = {
@@ -8,4 +9,5 @@ export type SnackDraft = {
   model: string | null
   /** When true, Crunch Again of a question-less snack asks Brainy once. */
   smartAnswers?: boolean
+  speechLang?: SpeechLang
 }

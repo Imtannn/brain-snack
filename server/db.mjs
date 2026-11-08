@@ -53,6 +53,8 @@ export async function migrate() {
       smart_answers boolean not null default false
     );
 
+    alter table snacks add column if not exists speech_lang text not null default '';
+
     create index if not exists snacks_owner_created_idx on snacks (owner_id, created_at desc);
 
     create table if not exists settings (

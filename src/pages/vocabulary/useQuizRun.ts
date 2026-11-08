@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { randomUnit } from '../../lib/core/clock'
 import { uid } from '../../lib/core/uid'
 import { generateQuizFromNotes } from '../../lib/gemini/generateQuiz'
+import { useSpeechLang } from '../../lib/speech/SpeechLangProvider'
 import type { SavedSnack } from '../../lib/snacks/snackRecord'
 import { DEFAULT_SECONDS, QUIZ_CHOICE_COUNT } from '../../lib/vocabulary/constants'
 import { parseVocabularyPaste } from '../../lib/vocabulary/parseNotes'
@@ -85,6 +86,7 @@ export function useQuizRun(
   const [error, setError] = useState(opening.current.error)
   const [phase, setPhase] = useState<VocabPhase>(opening.current.phase)
   const [generating, setGenerating] = useState(false)
+  const { lang, setLang } = useSpeechLang()
   const onBuiltRef = useRef(onBuilt)
   const onReadyRef = useRef(onReady)
   onBuiltRef.current = onBuilt
@@ -112,7 +114,7 @@ export function useQuizRun(
     onBuiltRef.current(questions, null)
   }
 
-  async function startProQuiz(seconds: number) {
+  async function startProQuiz(seconds: number, studyLang = lang) {
     const text = paste.trim()
     if (!text) {
       setError('Paste a list, notes, or a topic before asking Brainy.')
@@ -122,7 +124,7 @@ export function useQuizRun(
     setGenerating(true)
     setError('')
     try {
-      const result = await generateQuizFromNotes(geminiKey, text)
+      const result = await generateQuizFromNotes(geminiKey, text, studyLang)
       if (result.questions.length === 0) {
         setError('Brainy did not return any usable questions. Try clearer notes or a topic.')
         setPhase({ kind: 'input' })
@@ -188,11 +190,15 @@ export function useQuizRun(
   }
 
   useEffect(() => {
+    if (restudySnack?.speechLang) setLang(restudySnack.speechLang)
+  }, [restudySnack?.id, restudySnack?.speechLang, setLang])
+
+  useEffect(() => {
     if (!restudySnack || restudySnack.questions.length > 0) return
     if (restudySnack.smartAnswers) {
       if (!claimRawStart(restudySnack.id)) return
       const seconds = clampQuizSeconds(restudySnack.seconds)
-      if (geminiKey) void startProQuiz(seconds)
+      if (geminiKey) void startProQuiz(seconds, restudySnack.speechLang || lang)
       else startLocalQuiz(seconds)
       return
     }

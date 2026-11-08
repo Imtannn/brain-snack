@@ -22,4 +22,16 @@ describe('tutor helpers', () => {
     expect(prompt).toContain('lasting briefly')
     expect(prompt).toContain('sensible and realistic')
   })
+
+  it('names the study language so French que is not explained as Spanish', () => {
+    const prompt = explanationPrompt(
+      { ...question, prompt: 'Que', correctLabel: 'What' },
+      'wrong',
+      'Why',
+      'fr-FR',
+    )
+    expect(prompt).toContain('French (fr-FR)')
+    expect(prompt).toContain('Que')
+  })
 })
+
