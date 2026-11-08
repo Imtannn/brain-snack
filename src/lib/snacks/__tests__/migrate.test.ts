@@ -8,6 +8,9 @@ vi.mock('../../api/client', () => ({
   apiPutSnack: (...args: unknown[]) => putSnack(...args),
   apiListSnacks: () => listSnacks(),
   apiDeleteSnack: async () => {},
+  apiListPacks: async () => [],
+  apiPutPack: async () => {},
+  apiDeletePack: async () => {},
 }))
 
 import { migrateLocalSnacks } from '../store'

@@ -9,7 +9,7 @@ import {
 } from 'react'
 import { apiLogin, apiLogout, apiMe, cachedUser, setVaultToken, vaultToken, type ApiUser } from '../api/client'
 import { migrateLocalGeminiKey } from './geminiKey'
-import { migrateLocalSnacks } from '../snacks/store'
+import { migrateLocalPacks, migrateLocalSnacks } from '../snacks/store'
 
 export type AuthUser = ApiUser
 
@@ -37,6 +37,7 @@ async function migrate(user: AuthUser) {
   const email = user.email ?? ''
   if (!email) return
   await migrateLocalSnacks(user.uid, email)
+  await migrateLocalPacks(user.uid, email)
   await migrateLocalGeminiKey(user.uid, email)
 }
 

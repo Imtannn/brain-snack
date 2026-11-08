@@ -79,7 +79,7 @@ export async function generateContent(
       body: JSON.stringify({
         contents,
         generationConfig: options?.json
-          ? { responseMimeType: 'application/json', temperature: 0.4 }
+          ? { responseMimeType: 'application/json', temperature: 0.4, maxOutputTokens: 16384 }
           : { temperature: 0.5 },
       }),
     })

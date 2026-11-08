@@ -11,10 +11,13 @@ import {
   claimAccount,
   createSession,
   deleteSession,
+  deletePack,
   deleteSnack,
   getSettings,
+  listPacks,
   listSnacks,
   putSettings,
+  upsertPack,
   upsertSnack,
   userFromTokenHash,
   vaultHealth,
@@ -149,6 +152,36 @@ app.delete('/api/snacks/:id', async (c) => {
   return c.json({ ok: true })
 })
 
+app.get('/api/packs', async (c) => {
+  const user = await userFromRequest(c)
+  if (!user) return jsonError(c, 401, 'Log in to open your Snack Vault.')
+  return c.json({ packs: (await listPacks(user)).map(mapPack) })
+})
+
+app.put('/api/packs/:id', async (c) => {
+  const user = await userFromRequest(c)
+  if (!user) return jsonError(c, 401, 'Log in to save a pack.')
+  const id = c.req.param('id')
+  const body = await c.req.json().catch(() => ({}))
+  const pack = parsePack(id, user.id, body)
+  if (!pack) return jsonError(c, 400, 'Name this pack before saving.')
+  await upsertPack({
+    id: pack.id,
+    owner_id: user.id,
+    title: pack.title,
+    snack_ids: pack.snackIds,
+    created_at: pack.createdAt,
+  })
+  return c.json({ pack })
+})
+
+app.delete('/api/packs/:id', async (c) => {
+  const user = await userFromRequest(c)
+  if (!user) return jsonError(c, 401, 'Log in to delete a pack.')
+  await deletePack(user.id, c.req.param('id'))
+  return c.json({ ok: true })
+})
+
 app.get('/api/settings', async (c) => {
   const user = await userFromRequest(c)
   if (!user) return jsonError(c, 401, 'Log in to load Brainy.')
@@ -208,6 +241,49 @@ function parseSnack(id, ownerId, body) {
 function parseSpeechLang(value) {
   const lang = String(value || '').trim()
   return /^[a-z]{2}-[A-Z]{2}$/.test(lang) ? lang : ''
+}
+
+function mapPack(row) {
+  return {
+    id: row.id,
+    ownerId: row.owner_id,
+    title: row.title,
+    snackIds: packIds(row.snack_ids),
+    createdAt: Number(row.created_at),
+  }
+}
+
+function packIds(value) {
+  if (Array.isArray(value)) return value.filter((entry) => typeof entry === 'string' && entry)
+  if (typeof value === 'string') {
+    try {
+      return packIds(JSON.parse(value))
+    } catch {
+      return []
+    }
+  }
+  return []
+}
+
+function parsePack(id, ownerId, body) {
+  const title = String(body.title || '').trim()
+  if (!title) return null
+  const seen = new Set()
+  const snackIds = []
+  if (Array.isArray(body.snackIds)) {
+    for (const entry of body.snackIds) {
+      if (typeof entry !== 'string' || !entry || seen.has(entry)) continue
+      seen.add(entry)
+      snackIds.push(entry)
+    }
+  }
+  return {
+    id,
+    ownerId,
+    title,
+    snackIds,
+    createdAt: Number(body.createdAt) || Date.now(),
+  }
 }
 
 app.all('/api/*', (c) => jsonError(c, 404, 'Not found'))

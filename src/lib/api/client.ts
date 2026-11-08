@@ -121,6 +121,22 @@ export async function apiDeleteSnack(id: string): Promise<void> {
   await api(`/api/snacks/${encodeURIComponent(id)}`, { method: 'DELETE' })
 }
 
+export async function apiListPacks() {
+  const data = await api<{ packs: CloudPack[] }>('/api/packs')
+  return data.packs
+}
+
+export async function apiPutPack(pack: CloudPack): Promise<void> {
+  await api(`/api/packs/${encodeURIComponent(pack.id)}`, {
+    method: 'PUT',
+    body: JSON.stringify(pack),
+  })
+}
+
+export async function apiDeletePack(id: string): Promise<void> {
+  await api(`/api/packs/${encodeURIComponent(id)}`, { method: 'DELETE' })
+}
+
 export async function apiLoadSettings(): Promise<{ geminiKeyEnc: string; geminiKeyIv: string }> {
   return api('/api/settings')
 }
@@ -140,4 +156,12 @@ export type CloudSnack = {
   model: string | null
   smartAnswers: boolean
   speechLang?: string
+}
+
+export type CloudPack = {
+  id: string
+  ownerId: string
+  title: string
+  snackIds: string[]
+  createdAt: number
 }

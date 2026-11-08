@@ -51,6 +51,15 @@ function withPeriod(text: string): string {
   return /[.!?]$/.test(text) ? text : `${text}.`
 }
 
+export function questionsFromGeneratedItems(
+  items: readonly GeneratedItem[],
+  random: () => number = randomUnit,
+  ids?: QuizIds,
+): QuizQuestion[] {
+  const idSource: QuizIds = ids ?? { question: () => uid('q'), choice: () => uid('c') }
+  return items.map((item) => toQuizQuestion(item, random, idSource))
+}
+
 export function questionsFromModelText(
   raw: string,
   random: () => number = randomUnit,
@@ -58,14 +67,12 @@ export function questionsFromModelText(
 ): QuizQuestion[] {
   const parsed = extractJson(raw)
   if (!Array.isArray(parsed)) throw new Error('Brainy returned text that was not a JSON array.')
-  const idSource: QuizIds = ids ?? { question: () => uid('q'), choice: () => uid('c') }
-  const questions: QuizQuestion[] = []
+  const items: GeneratedItem[] = []
   for (const entry of parsed) {
     const item = asGeneratedItem(entry)
-    if (!item) continue
-    questions.push(toQuizQuestion(item, random, idSource))
+    if (item) items.push(item)
   }
-  return questions
+  return questionsFromGeneratedItems(items, random, ids)
 }
 
 function toQuizQuestion(item: GeneratedItem, random: () => number, ids: QuizIds): QuizQuestion {

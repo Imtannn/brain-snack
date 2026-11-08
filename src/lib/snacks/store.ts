@@ -1,10 +1,20 @@
 import { uid } from '../core/uid'
-import { apiDeleteSnack, apiListSnacks, apiPutSnack, vaultToken } from '../api/client'
+import {
+  apiDeletePack,
+  apiDeleteSnack,
+  apiListPacks,
+  apiListSnacks,
+  apiPutPack,
+  apiPutSnack,
+  vaultToken,
+} from '../api/client'
 import { accountId } from '../auth/localAccounts'
+import { dropSnackFromPacks, toSavedPack, type SavedPack } from './packRecord'
 import { toSavedSnack, type SavedSnack } from './snackRecord'
 import type { SnackDraft } from './types'
 
 const storageKey = (userId: string) => `brain-snack.snacks.${userId}`
+const packStorageKey = (userId: string) => `brain-snack.packs.${userId}`
 
 function readAllLocal(userId: string): SavedSnack[] {
   try {
@@ -98,6 +108,92 @@ export async function listSnacks(userId: string): Promise<SavedSnack[]> {
 export async function deleteSnack(userId: string, id: string): Promise<void> {
   if (cloudSession()) await apiDeleteSnack(id)
   cacheLocal(userId, readAllLocal(userId).filter((snack) => snack.id !== id))
+  cacheLocalPacks(userId, dropSnackFromPacks(readAllLocalPacks(userId), id))
+}
+
+function readAllLocalPacks(userId: string): SavedPack[] {
+  try {
+    const raw = localStorage.getItem(packStorageKey(userId))
+    if (!raw) return []
+    const parsed: unknown = JSON.parse(raw)
+    if (!Array.isArray(parsed)) return []
+    const packs: SavedPack[] = []
+    for (const item of parsed) {
+      const id = item && typeof item === 'object' && 'id' in item && typeof item.id === 'string' ? item.id : ''
+      const pack = toSavedPack(id, item)
+      if (pack) packs.push(pack)
+    }
+    return packs
+  } catch {
+    return []
+  }
+}
+
+function writeAllLocalPacks(userId: string, packs: readonly SavedPack[]) {
+  localStorage.setItem(packStorageKey(userId), JSON.stringify(packs))
+}
+
+function cacheLocalPacks(userId: string, packs: readonly SavedPack[]) {
+  try {
+    writeAllLocalPacks(userId, packs)
+  } catch {
+    // Private mode can block storage. Cloud is the source of truth.
+  }
+}
+
+async function upsertCloudPack(pack: SavedPack): Promise<void> {
+  if (!cloudSession()) return
+  await apiPutPack(pack)
+}
+
+export async function savePack(userId: string, title: string, snackIds: readonly string[] = []): Promise<string> {
+  const id = uid('pack')
+  const pack = toSavedPack(id, {
+    ownerId: userId,
+    title,
+    snackIds: snackIds.slice(),
+    createdAt: Date.now(),
+  })
+  if (!pack) throw new Error('Name this pack before saving.')
+  await upsertCloudPack(pack)
+  cacheLocalPacks(userId, [pack, ...readAllLocalPacks(userId).filter((item) => item.id !== id)])
+  return id
+}
+
+export async function updatePack(
+  userId: string,
+  id: string,
+  patch: Partial<Pick<SavedPack, 'title' | 'snackIds'>>,
+): Promise<void> {
+  const listed = await listPacks(userId)
+  const current = listed.find((pack) => pack.id === id)
+  if (!current) return
+  const next = toSavedPack(id, { ...current, ...patch, ownerId: userId })
+  if (!next) throw new Error('Could not save that pack.')
+  await upsertCloudPack(next)
+  cacheLocalPacks(
+    userId,
+    listed.map((pack) => (pack.id === id ? next : pack)),
+  )
+}
+
+export async function listPacks(userId: string): Promise<SavedPack[]> {
+  if (cloudSession()) {
+    const rows = await apiListPacks()
+    const packs: SavedPack[] = []
+    for (const row of rows) {
+      const pack = toSavedPack(row.id, row)
+      if (pack) packs.push(pack)
+    }
+    cacheLocalPacks(userId, packs)
+    return packs
+  }
+  return readAllLocalPacks(userId).sort((a, b) => b.createdAt - a.createdAt)
+}
+
+export async function deletePack(userId: string, id: string): Promise<void> {
+  if (cloudSession()) await apiDeletePack(id)
+  cacheLocalPacks(userId, readAllLocalPacks(userId).filter((pack) => pack.id !== id))
 }
 
 function readEveryLocalBag(): SavedSnack[] {
@@ -136,6 +232,48 @@ export async function migrateLocalSnacks(userId: string, email: string): Promise
     if (!next) continue
     try {
       await apiPutSnack(next)
+    } catch {
+      // Keep going so one bad row does not block the rest of the vault.
+    }
+  }
+}
+
+function readEveryLocalPackBag(): SavedPack[] {
+  const bags: SavedPack[] = []
+  const seen = new Set<string>()
+  try {
+    for (let i = 0; i < localStorage.length; i += 1) {
+      const key = localStorage.key(i)
+      if (!key?.startsWith('brain-snack.packs.')) continue
+      for (const pack of readAllLocalPacks(key.slice('brain-snack.packs.'.length))) {
+        if (seen.has(pack.id)) continue
+        seen.add(pack.id)
+        bags.push(pack)
+      }
+    }
+  } catch {
+    // Private mode can block storage. Cloud is the source of truth.
+  }
+  return bags
+}
+
+export async function migrateLocalPacks(userId: string, email: string): Promise<void> {
+  if (!cloudSession()) return
+  try {
+    const remote = await apiListPacks()
+    if (remote.length > 0) return
+  } catch {
+    return
+  }
+  const seen = new Set<string>()
+  const bags = [...readAllLocalPacks(accountId(email)), ...readEveryLocalPackBag()]
+  for (const pack of bags) {
+    if (seen.has(pack.id)) continue
+    seen.add(pack.id)
+    const next = toSavedPack(pack.id, { ...pack, ownerId: userId })
+    if (!next) continue
+    try {
+      await apiPutPack(next)
     } catch {
       // Keep going so one bad row does not block the rest of the vault.
     }

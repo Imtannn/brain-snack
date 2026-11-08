@@ -26,6 +26,7 @@ describe('generateContent', () => {
     expect(url).toContain(`/models/${PRIMARY_MODEL}:generateContent`)
     expect(url).toContain('key=test-key')
     expect(String(init.body)).toContain('"responseMimeType":"application/json"')
+    expect(String(init.body)).toContain('"maxOutputTokens":16384')
   })
 
   it('switches to the fallback model when the first model is missing', async () => {

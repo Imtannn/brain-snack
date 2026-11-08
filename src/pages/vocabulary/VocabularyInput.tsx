@@ -156,7 +156,7 @@ export function VocabularyInput({
               <p className="vocab-smart__label">Brainy: Smart Answers</p>
               <p className="ds-subtitle vocab-smart__hint">
                 {smartAnswers
-                  ? 'On — Brainy reads anything you paste and builds tricky, context-aware choices (uses your key).'
+                  ? 'On — Brainy keeps every word you pasted and writes trickier wrong answers (uses your key).'
                   : 'Off — free & fast. Parses word lists locally with random distractors (no API tokens).'}
               </p>
             </div>

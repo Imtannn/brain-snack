@@ -57,6 +57,16 @@ export async function migrate() {
 
     create index if not exists snacks_owner_created_idx on snacks (owner_id, created_at desc);
 
+    create table if not exists packs (
+      id text primary key,
+      owner_id uuid not null references users (id) on delete cascade,
+      title text not null,
+      snack_ids jsonb not null default '[]'::jsonb,
+      created_at bigint not null
+    );
+
+    create index if not exists packs_owner_created_idx on packs (owner_id, created_at desc);
+
     create table if not exists settings (
       owner_id uuid primary key references users (id) on delete cascade,
       gemini_key_enc text not null default '',

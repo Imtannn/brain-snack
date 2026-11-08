@@ -1,14 +1,21 @@
 import { describe, expect, it } from 'vitest'
 import { createSeededRandom } from '../../core/clock'
-import { asGeneratedItem, questionsFromModelText } from '../schema'
+import { asGeneratedItem, questionsFromGeneratedItems, questionsFromModelText } from '../schema'
 
 const item = {
   question: 'l’éclair',
   correct_answer: 'flash of lightning',
-  distractors: ['ocean wave', 'evening sunset', 'garden butterfly'],
+  distractors: ['ocean wave', 'evening sunset', 'garden butterfly'] as [string, string, string],
 }
 
 describe('questionsFromModelText', () => {
+  it('maps generated items onto four quiz choices', () => {
+    const questions = questionsFromGeneratedItems([item], createSeededRandom(2))
+    expect(questions).toHaveLength(1)
+    expect(questions[0]?.prompt).toBe('l’éclair')
+    expect(questions[0]?.choices).toHaveLength(4)
+  })
+
   it('maps a strict JSON array onto four quiz choices', () => {
     const questions = questionsFromModelText(JSON.stringify([item]), createSeededRandom(2))
     expect(questions).toHaveLength(1)

@@ -7,6 +7,7 @@ const empty = () => ({
   users: [],
   sessions: [],
   snacks: [],
+  packs: [],
   settings: [],
 })
 
@@ -35,6 +36,7 @@ async function withFile(mutator, write = true) {
       fileCache.users ||= []
       fileCache.sessions ||= []
       fileCache.snacks ||= []
+      fileCache.packs ||= []
       fileCache.settings ||= []
     }
     const result = await mutator(fileCache)
@@ -229,11 +231,83 @@ export async function upsertSnack(snack) {
 
 export async function deleteSnack(ownerId, id) {
   if (usePostgres()) {
-    await getPool().query('delete from snacks where id = $1 and owner_id = $2', [id, ownerId])
+    const db = getPool()
+    await db.query('delete from snacks where id = $1 and owner_id = $2', [id, ownerId])
+    const { rows } = await db.query('select id, snack_ids from packs where owner_id = $1', [ownerId])
+    for (const row of rows) {
+      const current = Array.isArray(row.snack_ids) ? row.snack_ids : []
+      const next = current.filter((snackId) => snackId !== id)
+      if (next.length === current.length) continue
+      await db.query('update packs set snack_ids = $1::jsonb where id = $2 and owner_id = $3', [
+        JSON.stringify(next),
+        row.id,
+        ownerId,
+      ])
+    }
     return
   }
   await withFile((data) => {
     data.snacks = data.snacks.filter((item) => !(item.id === id && item.owner_id === ownerId))
+    for (const pack of data.packs || []) {
+      if (pack.owner_id !== ownerId || !Array.isArray(pack.snack_ids)) continue
+      pack.snack_ids = pack.snack_ids.filter((snackId) => snackId !== id)
+    }
+  })
+}
+
+export async function listPacks(user) {
+  const ownerId = user.id
+  const email = user.email
+  if (usePostgres()) {
+    const { rows } = await getPool().query(
+      `select p.id, p.owner_id, p.title, p.snack_ids, p.created_at
+       from packs p
+       join users u on u.id = p.owner_id
+       where u.email = $1 or p.owner_id = $2
+       order by p.created_at desc`,
+      [email, ownerId],
+    )
+    return rows
+  }
+  return withFile((data) => {
+    const ids = new Set(
+      data.users.filter((item) => item.id === ownerId || item.email === email).map((item) => item.id),
+    )
+    ids.add(ownerId)
+    return (data.packs || [])
+      .filter((pack) => ids.has(pack.owner_id))
+      .sort((a, b) => Number(b.created_at) - Number(a.created_at))
+  }, false)
+}
+
+export async function upsertPack(pack) {
+  if (usePostgres()) {
+    await getPool().query(
+      `insert into packs (id, owner_id, title, snack_ids, created_at)
+       values ($1, $2, $3, $4::jsonb, $5)
+       on conflict (id) do update set
+         title = excluded.title,
+         snack_ids = excluded.snack_ids
+       where packs.owner_id = $2`,
+      [pack.id, pack.owner_id, pack.title, JSON.stringify(pack.snack_ids), pack.created_at],
+    )
+    return
+  }
+  await withFile((data) => {
+    data.packs ||= []
+    const index = data.packs.findIndex((item) => item.id === pack.id && item.owner_id === pack.owner_id)
+    if (index >= 0) data.packs[index] = pack
+    else data.packs.push(pack)
+  })
+}
+
+export async function deletePack(ownerId, id) {
+  if (usePostgres()) {
+    await getPool().query('delete from packs where id = $1 and owner_id = $2', [id, ownerId])
+    return
+  }
+  await withFile((data) => {
+    data.packs = (data.packs || []).filter((item) => !(item.id === id && item.owner_id === ownerId))
   })
 }
 
