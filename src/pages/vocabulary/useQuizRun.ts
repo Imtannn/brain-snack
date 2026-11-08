@@ -5,7 +5,7 @@ import { generateQuizFromNotes } from '../../lib/gemini/generateQuiz'
 import type { SavedSnack } from '../../lib/snacks/snackRecord'
 import { DEFAULT_SECONDS, QUIZ_CHOICE_COUNT } from '../../lib/vocabulary/constants'
 import { parseVocabularyPaste } from '../../lib/vocabulary/parseNotes'
-import { buildMeaningQuiz, clampQuizSeconds } from '../../lib/vocabulary/quiz'
+import { buildMeaningQuiz, clampQuizSeconds, shuffleQuestions } from '../../lib/vocabulary/quiz'
 import type { QuizQuestion, VocabNote } from '../../lib/vocabulary/types'
 import { claimRawStart } from './useSnackSave'
 import type { VocabPhase } from './quizPhase'
@@ -36,7 +36,7 @@ function initialPhase(snack: SavedSnack | null): { phase: VocabPhase; error: str
       phase: {
         kind: 'quiz',
         runId: uid('run'),
-        questions: snack.questions,
+        questions: shuffleQuestions(snack.questions),
         seconds,
         rawText: snack.rawText,
         pro: Boolean(snack.model),
@@ -142,6 +142,19 @@ export function useQuizRun(
 
   function startQuiz() {
     if (generating) return
+    if (phase.kind === 'done' && phase.questions.length > 0) {
+      setError('')
+      setPhase({
+        kind: 'quiz',
+        runId: uid('run'),
+        questions: shuffleQuestions(phase.questions),
+        seconds: phase.seconds,
+        rawText: phase.rawText,
+        pro: phase.pro,
+        model: phase.model,
+      })
+      return
+    }
     const seconds = clampQuizSeconds(Number(secondsText))
     setSecondsText(String(seconds))
     if (canUseSmartAnswers && smartAnswers) {

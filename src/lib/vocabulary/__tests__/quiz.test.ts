@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { createSeededRandom } from '../../core/clock'
-import { buildExplanation, buildMeaningQuiz, buildQuiz, clampQuizSeconds, type QuizIds } from '../quiz'
+import { buildExplanation, buildMeaningQuiz, buildQuiz, clampQuizSeconds, shuffleQuestions, type QuizIds } from '../quiz'
 import type { VocabNote } from '../types'
 
 const notes: VocabNote[] = [
@@ -101,5 +101,15 @@ describe('clampQuizSeconds', () => {
     expect(clampQuizSeconds(1)).toBe(3)
     expect(clampQuizSeconds(400)).toBe(180)
     expect(clampQuizSeconds(Number.NaN)).toBe(15)
+  })
+})
+
+describe('shuffleQuestions', () => {
+  it('keeps the same questions while changing order for a new crunch', () => {
+    const original = buildMeaningQuiz(notes.slice(0, 4), createSeededRandom(3), ids)
+    const first = shuffleQuestions(original, createSeededRandom(11)).map((question) => question.id)
+    const second = shuffleQuestions(original, createSeededRandom(12)).map((question) => question.id)
+    expect([...first].sort()).toEqual(original.map((question) => question.id).sort())
+    expect(first).not.toEqual(second)
   })
 })

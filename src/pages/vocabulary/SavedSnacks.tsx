@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react'
-import { Button, IconButton, Stack } from '@shared/ui'
-import { deleteSnack, listSnacks, snackErrorMessage } from '../../lib/snacks/store'
+import { useEffect, useRef, useState } from 'react'
+import { Button, IconButton, Stack, TextField } from '@shared/ui'
+import { deleteSnack, listSnacks, snackErrorMessage, updateSnack } from '../../lib/snacks/store'
 import type { SavedSnack } from '../../lib/snacks/snackRecord'
 
 export function SavedSnacks({
@@ -13,6 +13,12 @@ export function SavedSnacks({
   const [snacks, setSnacks] = useState<SavedSnack[]>([])
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(true)
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [draftTitle, setDraftTitle] = useState('')
+  const [savingId, setSavingId] = useState<string | null>(null)
+  const [renameError, setRenameError] = useState('')
+  const editingIdRef = useRef<string | null>(null)
+  editingIdRef.current = editingId
 
   useEffect(() => {
     let active = true
@@ -34,7 +40,7 @@ export function SavedSnacks({
 
     void load(true)
     const refresh = () => {
-      if (document.visibilityState === 'visible') void load(false)
+      if (document.visibilityState === 'visible' && !editingIdRef.current) void load(false)
     }
     window.addEventListener('focus', refresh)
     document.addEventListener('visibilitychange', refresh)
@@ -45,11 +51,47 @@ export function SavedSnacks({
     }
   }, [uid])
 
+  function startRename(snack: SavedSnack) {
+    setEditingId(snack.id)
+    setDraftTitle(snack.title)
+    setRenameError('')
+    setError('')
+  }
+
+  function cancelRename() {
+    setEditingId(null)
+    setRenameError('')
+  }
+
+  async function saveRename(snack: SavedSnack) {
+    const title = draftTitle.trim()
+    if (!title) {
+      setRenameError('Name this snack before saving.')
+      return
+    }
+    if (title === snack.title) {
+      cancelRename()
+      return
+    }
+    setSavingId(snack.id)
+    try {
+      await updateSnack(uid, snack.id, { title })
+      setSnacks((current) => current.map((item) => (item.id === snack.id ? { ...item, title } : item)))
+      cancelRename()
+      setError('')
+    } catch (err) {
+      setRenameError(snackErrorMessage(err))
+    } finally {
+      setSavingId(null)
+    }
+  }
+
   async function remove(snack: SavedSnack) {
     if (!window.confirm(`Delete “${snack.title}”?`)) return
     try {
       await deleteSnack(uid, snack.id)
       setSnacks((current) => current.filter((item) => item.id !== snack.id))
+      if (editingId === snack.id) setEditingId(null)
       setError('')
     } catch (err) {
       setError(snackErrorMessage(err))
@@ -67,27 +109,97 @@ export function SavedSnacks({
       <Stack gap="3">
         {snacks.map((snack) => (
           <article key={snack.id} className="vocab-snack">
-            <div className="vocab-snack__copy">
-              <p className="vocab-snack__title">{snack.title}</p>
-              <p className="ds-subtitle">
-                {snack.questions.length === 0 ? 'Saved list' : `${snack.questions.length} questions`}
-                {snack.createdAt
-                  ? ` · ${new Date(snack.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}`
-                  : ''}
-              </p>
-            </div>
-            <div className="vocab-snack__actions">
-              <Button size="sm" className="btn-pop" onClick={() => onRestudy(snack)}>
-                Crunch Again
-              </Button>
-              <IconButton label={`Delete ${snack.title}`} className="vocab-snack__delete" onClick={() => void remove(snack)}>
-                <TrashIcon />
-              </IconButton>
-            </div>
+            {editingId === snack.id ? (
+              <form
+                className="vocab-snack__rename"
+                onSubmit={(event) => {
+                  event.preventDefault()
+                  void saveRename(snack)
+                }}
+              >
+                <TextField
+                  label="Snack name"
+                  size="sm"
+                  value={draftTitle}
+                  error={renameError || undefined}
+                  disabled={savingId === snack.id}
+                  autoComplete="off"
+                  autoFocus
+                  onFocus={(event) => event.currentTarget.select()}
+                  onChange={(event) => {
+                    setDraftTitle(event.target.value)
+                    setRenameError('')
+                  }}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Escape') {
+                      event.preventDefault()
+                      cancelRename()
+                    }
+                  }}
+                />
+                <div className="vocab-snack__actions">
+                  <Button type="submit" size="sm" className="btn-pop" disabled={savingId === snack.id}>
+                    {savingId === snack.id ? 'Saving…' : 'Save name'}
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="quiet"
+                    disabled={savingId === snack.id}
+                    onClick={cancelRename}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </form>
+            ) : (
+              <>
+                <div className="vocab-snack__copy">
+                  <div className="vocab-snack__title-row">
+                    <p className="vocab-snack__title">{snack.title}</p>
+                    <IconButton
+                      label={`Rename ${snack.title}`}
+                      className="vocab-snack__edit"
+                      onClick={() => startRename(snack)}
+                    >
+                      <PencilIcon />
+                    </IconButton>
+                  </div>
+                  <p className="ds-subtitle">
+                    {snack.questions.length === 0 ? 'Saved list' : `${snack.questions.length} questions`}
+                    {snack.createdAt
+                      ? ` · ${new Date(snack.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}`
+                      : ''}
+                  </p>
+                </div>
+                <div className="vocab-snack__actions">
+                  <Button size="sm" className="btn-pop" onClick={() => onRestudy(snack)}>
+                    Crunch Again
+                  </Button>
+                  <IconButton label={`Delete ${snack.title}`} className="vocab-snack__delete" onClick={() => void remove(snack)}>
+                    <TrashIcon />
+                  </IconButton>
+                </div>
+              </>
+            )}
           </article>
         ))}
       </Stack>
     </section>
+  )
+}
+
+function PencilIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path
+        d="M4 20h4.5L19 9.5 14.5 5 4 15.5V20zM14.5 5l4.5 4.5"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
   )
 }
 

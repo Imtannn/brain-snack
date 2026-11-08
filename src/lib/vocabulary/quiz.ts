@@ -24,6 +24,17 @@ export function shuffle<T>(items: readonly T[], random: () => number): T[] {
   return copy
 }
 
+/** Fresh question and choice order for Crunch Again, without changing the saved snack. */
+export function shuffleQuestions(
+  questions: readonly QuizQuestion[],
+  random: () => number = randomUnit,
+): QuizQuestion[] {
+  return shuffle(questions, random).map((question) => ({
+    ...question,
+    choices: shuffle(question.choices, random),
+  }))
+}
+
 /** Word prompt, four English meanings, distractors taken only from the pasted list. */
 export function buildMeaningQuiz(
   prompts: readonly VocabNote[],
