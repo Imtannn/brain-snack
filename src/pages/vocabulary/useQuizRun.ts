@@ -28,6 +28,13 @@ function quizError(count: number): string {
   return `Need at least ${QUIZ_CHOICE_COUNT} different English meanings so each question has ${QUIZ_CHOICE_COUNT} choices.`
 }
 
+/** Saved Brainy/local questions, reused on Crunch Again unless the paste changed. */
+export function savedQuestionsToReplay(snack: SavedSnack | null, paste: string): QuizQuestion[] | null {
+  if (!snack?.questions.length) return null
+  if (paste.trim() !== snack.rawText.trim()) return null
+  return snack.questions
+}
+
 function initialPhase(snack: SavedSnack | null): { phase: VocabPhase; error: string } {
   if (!snack) return { phase: { kind: 'input' }, error: '' }
   const seconds = clampQuizSeconds(snack.seconds)
@@ -140,23 +147,39 @@ export function useQuizRun(
     }
   }
 
+  function replay(
+    questions: readonly QuizQuestion[],
+    seconds: number,
+    rawText: string,
+    pro: boolean,
+    model: string | null,
+  ) {
+    setError('')
+    onReadyRef.current()
+    setPhase({
+      kind: 'quiz',
+      runId: uid('run'),
+      questions: shuffleQuestions(questions),
+      seconds,
+      rawText,
+      pro,
+      model,
+    })
+  }
+
   function startQuiz() {
     if (generating) return
     if (phase.kind === 'done' && phase.questions.length > 0) {
-      setError('')
-      setPhase({
-        kind: 'quiz',
-        runId: uid('run'),
-        questions: shuffleQuestions(phase.questions),
-        seconds: phase.seconds,
-        rawText: phase.rawText,
-        pro: phase.pro,
-        model: phase.model,
-      })
+      replay(phase.questions, phase.seconds, phase.rawText, phase.pro, phase.model)
       return
     }
     const seconds = clampQuizSeconds(Number(secondsText))
     setSecondsText(String(seconds))
+    const saved = savedQuestionsToReplay(restudySnack, paste)
+    if (saved && restudySnack) {
+      replay(saved, seconds, restudySnack.rawText, Boolean(restudySnack.model), restudySnack.model)
+      return
+    }
     if (canUseSmartAnswers && smartAnswers) {
       void startProQuiz(seconds)
       return
@@ -174,7 +197,7 @@ export function useQuizRun(
       return
     }
     if (phase.kind === 'quiz') onBuiltRef.current(phase.questions, phase.model)
-    // Build a saved list once. Later renders must not ask Brainy again.
+    // First restudy of a question-less list. Later Crunch Again must reuse the saved questions.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 

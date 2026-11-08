@@ -47,9 +47,16 @@ export function useSnackSave({
   )
 
   function rememberQuestions(questions: readonly QuizQuestion[], model: string | null) {
-    if (!user || !savedId || !attachQuestions) return
+    if (!user || !savedId || !attachQuestions || questions.length === 0) return
     setAttachQuestions(false)
-    void updateSnack(user.uid, savedId, { questions: questions.slice(), model }).catch(() => {})
+    void updateSnack(user.uid, savedId, {
+      questions: questions.slice(),
+      model,
+      smartAnswers: false,
+    }).catch(() => {
+      // The current run still uses these questions. The next Crunch Again retries the save.
+      setAttachQuestions(true)
+    })
   }
 
   function detach() {
@@ -117,6 +124,7 @@ export function useSnackSave({
         seconds: phase.seconds,
         questions: phase.questions,
         model: phase.model,
+        smartAnswers: false,
       })
       setSaved(true)
     } catch (err) {
