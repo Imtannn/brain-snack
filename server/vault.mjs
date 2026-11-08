@@ -23,7 +23,7 @@ function usePostgres() {
   return Boolean(getPool())
 }
 
-async function withFile(mutator) {
+async function withFile(mutator, write = true) {
   const run = async () => {
     if (!fileCache) {
       await mkdir(dataDir, { recursive: true })
@@ -38,9 +38,11 @@ async function withFile(mutator) {
       fileCache.settings ||= []
     }
     const result = await mutator(fileCache)
-    const tmp = `${dataFile}.tmp`
-    await writeFile(tmp, JSON.stringify(fileCache))
-    await rename(tmp, dataFile)
+    if (write) {
+      const tmp = `${dataFile}.tmp`
+      await writeFile(tmp, JSON.stringify(fileCache))
+      await rename(tmp, dataFile)
+    }
     return result
   }
   const next = fileQueue.then(run, run)
@@ -56,7 +58,7 @@ export async function bootVault() {
     await migratePostgres()
     return { driver: 'postgres' }
   }
-  await withFile(() => null)
+  await withFile(() => null, true)
   return { driver: 'file' }
 }
 
@@ -70,7 +72,7 @@ export async function vaultHealth() {
     }
   }
   try {
-    await withFile(() => null)
+    await withFile(() => null, false)
     return { ok: true, db: true, driver: 'file' }
   } catch {
     return { ok: false, db: false, driver: 'file' }
@@ -99,14 +101,21 @@ export async function claimAccount(email, pin) {
     }
     return { id: user.id, email: user.email }
   }
+  const existing = await withFile((data) => data.users.find((item) => item.email === email) || null, false)
+  if (existing) {
+    if (!(await pinMatches(pin, existing.pin_hash))) {
+      const err = new Error('Wrong PIN for that email.')
+      err.status = 401
+      throw err
+    }
+    return { id: existing.id, email: existing.email }
+  }
   return withFile(async (data) => {
     let user = data.users.find((item) => item.email === email)
     if (!user) {
       user = { id: newUserId(), email, pin_hash: await hashPin(pin), created_at: Date.now() }
       data.users.push(user)
-      return { id: user.id, email: user.email }
-    }
-    if (!(await pinMatches(pin, user.pin_hash))) {
+    } else if (!(await pinMatches(pin, user.pin_hash))) {
       const err = new Error('Wrong PIN for that email.')
       err.status = 401
       throw err
@@ -128,7 +137,7 @@ export async function userFromTokenHash(hash, now) {
     if (!session) return null
     const user = data.users.find((item) => item.id === session.user_id)
     return user ? { id: user.id, email: user.email } : null
-  })
+  }, false)
 }
 
 export async function createSession(session) {
@@ -141,6 +150,8 @@ export async function createSession(session) {
     return
   }
   await withFile((data) => {
+    const now = Date.now()
+    data.sessions = data.sessions.filter((item) => item.expires_at > now)
     data.sessions.push(session)
   })
 }
@@ -177,7 +188,7 @@ export async function listSnacks(user) {
     return data.snacks
       .filter((snack) => ids.has(snack.owner_id))
       .sort((a, b) => Number(b.created_at) - Number(a.created_at))
-  })
+  }, false)
 }
 
 export async function upsertSnack(snack) {
@@ -231,7 +242,7 @@ export async function getSettings(ownerId) {
     ])
     return rows[0] || null
   }
-  return withFile((data) => data.settings.find((item) => item.owner_id === ownerId) || null)
+  return withFile((data) => data.settings.find((item) => item.owner_id === ownerId) || null, false)
 }
 
 export async function putSettings(row) {

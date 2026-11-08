@@ -45,15 +45,16 @@ export function AppShell() {
   }
 
   const showHome = Boolean(user && screen === 'session')
+  const restoring = !ready && !user
 
   return (
     <div className="app-shell">
       <TopNav showHome={showHome} onHome={goHome} />
       <div className="app-shell__body">
-        {screen === 'home' && user ? (
+        {restoring ? null : screen === 'home' && user ? (
           <HomeDashboard onNewSnack={openNewSnack} onRestudy={openRestudy} />
         ) : null}
-        {screen === 'session' ? (
+        {restoring ? null : screen === 'session' ? (
           <VocabularyPage
             key={sessionKey}
             restudySnack={restudySnack}

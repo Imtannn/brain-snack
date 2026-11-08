@@ -18,7 +18,7 @@ export function TopNav({
 }) {
   const { theme, toggleTheme } = useTheme()
   const { lang, setLang } = useSpeechLang()
-  const { user, signOutUser } = useAuth()
+  const { user, ready, signOutUser } = useAuth()
   const { key, setKey } = useGeminiKey()
   const [loginOpen, setLoginOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
@@ -108,11 +108,13 @@ export function TopNav({
         </div>
 
         <div className="top-nav__auth">
-          {!user ? (
+          {!ready && !user ? <span className="top-nav__auth-slot" aria-hidden="true" /> : null}
+          {ready && !user ? (
             <Button size="sm" variant="quiet" className="btn-pop top-nav__login" onClick={() => setLoginOpen(true)}>
               Log in
             </Button>
-          ) : (
+          ) : null}
+          {user ? (
             <div className="top-nav__account" ref={menuRef}>
               <button
                 type="button"
@@ -149,7 +151,7 @@ export function TopNav({
                 </Menu>
               ) : null}
             </div>
-          )}
+          ) : null}
         </div>
       </div>
 

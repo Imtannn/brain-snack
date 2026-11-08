@@ -7,7 +7,7 @@ import {
   useState,
   type ReactNode,
 } from 'react'
-import { apiLogin, apiLogout, apiMe, type ApiUser } from '../api/client'
+import { apiLogin, apiLogout, apiMe, cachedUser, setVaultToken, vaultToken, type ApiUser } from '../api/client'
 import { migrateLocalGeminiKey } from './geminiKey'
 import { migrateLocalSnacks } from '../snacks/store'
 
@@ -41,8 +41,8 @@ async function migrate(user: AuthUser) {
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<AuthUser | null>(null)
-  const [ready, setReady] = useState(false)
+  const [user, setUser] = useState<AuthUser | null>(() => cachedUser())
+  const [ready, setReady] = useState(() => !vaultToken())
 
   useEffect(() => {
     let active = true
@@ -51,12 +51,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const next = await apiMe()
         if (!active) return
         if (next) {
-          await migrate(next)
-          if (!active) return
           setUser(next)
+          void migrate(next)
+        } else if (vaultToken()) {
+          setVaultToken(null)
+          setUser(null)
         }
       } catch {
-        // Guest play still works if the vault is briefly unreachable.
+        // Keep the cached session if the vault is briefly unreachable.
       } finally {
         if (active) setReady(true)
       }
@@ -68,8 +70,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signIn = useCallback(async (email: string, pin: string) => {
     const next = await apiLogin(email, pin)
-    await migrate(next)
     setUser(next)
+    void migrate(next)
   }, [])
 
   const signOutUser = useCallback(async () => {

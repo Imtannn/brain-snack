@@ -202,9 +202,17 @@ function parseSnack(id, ownerId, body) {
   }
 }
 
+app.all('/api/*', (c) => jsonError(c, 404, 'Not found'))
+
 if (existsSync(distDir)) {
-  app.use('/*', serveStatic({ root: './dist' }))
-  app.get('*', serveStatic({ path: './dist/index.html' }))
+  app.use('/*', (c, next) => {
+    if (c.req.path.startsWith('/api/')) return next()
+    return serveStatic({ root: './dist' })(c, next)
+  })
+  app.notFound((c) => {
+    if (c.req.path.startsWith('/api/')) return jsonError(c, 404, 'Not found')
+    return serveStatic({ path: './dist/index.html' })(c, async () => undefined)
+  })
 }
 
 const port = Number(process.env.PORT || 8787)

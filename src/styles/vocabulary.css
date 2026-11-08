@@ -107,9 +107,16 @@
   display: none;
 }
 
-.top-nav__login {
+.top-nav__login,
+.top-nav__auth-slot {
   flex-shrink: 0;
   white-space: nowrap;
+}
+
+.top-nav__auth-slot {
+  display: inline-block;
+  min-width: 4.75rem;
+  height: var(--control-h-sm);
 }
 
 .top-nav__account {

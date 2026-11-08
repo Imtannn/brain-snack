@@ -101,11 +101,11 @@ export async function deleteSnack(userId: string, id: string): Promise<void> {
 
 export async function migrateLocalSnacks(userId: string, email: string): Promise<void> {
   if (!cloudSession()) return
-  const seen = new Set<string>()
-  const bags = [...readAllLocal(accountId(email)), ...readAllLocal(userId)]
+  const legacyId = accountId(email)
+  if (legacyId === userId) return
+  const bags = readAllLocal(legacyId)
+  if (bags.length === 0) return
   for (const snack of bags) {
-    if (seen.has(snack.id)) continue
-    seen.add(snack.id)
     const next = toSavedSnack(snack.id, { ...snack, ownerId: userId })
     if (!next) continue
     try {

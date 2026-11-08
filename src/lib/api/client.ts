@@ -4,6 +4,7 @@ export type ApiUser = {
 }
 
 const TOKEN_KEY = 'brain-snack.vaultToken'
+const USER_KEY = 'brain-snack.vaultUser'
 
 export function vaultToken(): string {
   try {
@@ -13,12 +14,39 @@ export function vaultToken(): string {
   }
 }
 
+export function cachedUser(): ApiUser | null {
+  if (!vaultToken()) return null
+  try {
+    const raw = localStorage.getItem(USER_KEY)
+    if (!raw) return null
+    const parsed: unknown = JSON.parse(raw)
+    if (!parsed || typeof parsed !== 'object') return null
+    const row = parsed as { uid?: unknown; email?: unknown }
+    if (typeof row.uid !== 'string' || !row.uid) return null
+    return { uid: row.uid, email: typeof row.email === 'string' ? row.email : null }
+  } catch {
+    return null
+  }
+}
+
+function cacheUser(user: ApiUser | null) {
+  try {
+    if (user) localStorage.setItem(USER_KEY, JSON.stringify({ uid: user.uid, email: user.email }))
+    else localStorage.removeItem(USER_KEY)
+  } catch {
+    // Private mode can still use the cookie when it is available.
+  }
+}
+
 export function setVaultToken(token: string | null) {
   try {
     if (token) localStorage.setItem(TOKEN_KEY, token)
-    else localStorage.removeItem(TOKEN_KEY)
+    else {
+      localStorage.removeItem(TOKEN_KEY)
+      cacheUser(null)
+    }
   } catch {
-    // Private mode can still use the cookie when it is available.
+    if (!token) cacheUser(null)
   }
 }
 
@@ -38,6 +66,10 @@ async function api<T>(path: string, init?: RequestInit): Promise<T> {
   } catch {
     throw new Error('Could not reach the vault. Try again in a moment.')
   }
+  const type = res.headers.get('content-type') || ''
+  if (type.includes('text/html')) {
+    throw new Error('Could not reach the vault. Try again in a moment.')
+  }
   const data: unknown = await res.json().catch(() => ({}))
   if (!res.ok) {
     const message =
@@ -51,6 +83,7 @@ async function api<T>(path: string, init?: RequestInit): Promise<T> {
 
 export async function apiMe(): Promise<ApiUser | null> {
   const data = await api<{ user: ApiUser | null }>('/api/auth/me')
+  if (data.user) cacheUser(data.user)
   return data.user
 }
 
@@ -60,6 +93,7 @@ export async function apiLogin(email: string, pin: string): Promise<ApiUser> {
     body: JSON.stringify({ email, pin }),
   })
   if (data.token) setVaultToken(data.token)
+  cacheUser(data.user)
   return data.user
 }
 
